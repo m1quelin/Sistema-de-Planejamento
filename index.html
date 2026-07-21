@@ -12,24 +12,15 @@
   
   <style>
     .auth-tabs {
-      display: flex;
-      gap: 0;
-      margin-bottom: 20px;
+      display: flex; gap: 0; margin-bottom: 20px;
       border-bottom: 1px solid var(--border, #2a2f45);
     }
     .auth-tab {
-      flex: 1;
-      padding: 12px;
-      background: none;
-      border: none;
+      flex: 1; padding: 12px; background: none; border: none;
       border-bottom: 2px solid transparent;
-      color: var(--muted, #7b82a0);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: var(--muted, #7b82a0); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.05em;
       font-family: inherit;
     }
     .auth-tab:hover { color: var(--text, #e8eaf0); }
@@ -38,12 +29,8 @@
       border-bottom-color: var(--accent, #4f8ef7);
     }
     .domain-hint {
-      font-size: 12px;
-      font-weight: 500;
-      margin-top: 6px;
-      display: none;
-      align-items: center;
-      gap: 4px;
+      font-size: 12px; font-weight: 500; margin-top: 6px;
+      display: none; align-items: center; gap: 4px;
     }
     .domain-hint.show { display: flex; }
     .domain-hint.error { color: var(--red, #f06a4e); }
@@ -57,24 +44,15 @@
       box-shadow: 0 0 0 3px rgba(240, 106, 78, 0.15) !important;
     }
     .link-btn {
-      background: none;
-      border: none;
-      color: var(--accent, #4f8ef7);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 0;
-      text-decoration: none;
+      background: none; border: none; color: var(--accent, #4f8ef7);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; padding: 0; text-decoration: none;
     }
     .link-btn:hover { text-decoration: underline; }
     .auth-footer {
-      text-align: center;
-      margin-top: 20px;
-      padding-top: 16px;
+      text-align: center; margin-top: 20px; padding-top: 16px;
       border-top: 1px solid var(--border, #2a2f45);
-      font-size: 13px;
-      color: var(--muted, #7b82a0);
+      font-size: 13px; color: var(--muted, #7b82a0);
     }
     #loginView, #registerView { width: 100%; }
     .auth-view-anim { animation: fadeInAuth 0.2s ease; }
@@ -82,195 +60,70 @@
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* Debug visual na tela */
-    #moduleDebug {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      background: var(--surface, #181c27);
-      border: 1px solid var(--border, #2a2f45);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 11px;
-      font-family: monospace;
-      color: var(--text, #e8eaf0);
-      max-width: 400px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 99999;
-      display: none;
-    }
-    #moduleDebug.show { display: block; }
-    #moduleDebug .dbg-ok { color: var(--green, #38d9a9); }
-    #moduleDebug .dbg-err { color: var(--red, #f06a4e); }
-    #moduleDebug .dbg-info { color: var(--accent, #4f8ef7); }
   </style>
 </head>
 <body>
 
-<!-- DEBUG VISUAL (aperte F2 para mostrar/esconder) -->
-<div id="moduleDebug"></div>
-
-<!-- LOADING GLOBAL -->
 <div class="global-loading" id="globalLoading">
   <div class="spinner"></div>
   <p>Verificando sessão...</p>
 </div>
 
-<!-- ========================================== -->
-<!-- AUTH VIEW                                  -->
-<!-- ========================================== -->
 <section id="auth-view">
   <div class="auth-box">
-    
-    <!-- TABS -->
     <div class="auth-tabs">
-      <button type="button" class="auth-tab active" id="tabLogin" onclick="window._authSwitch('login')">Entrar</button>
-      <button type="button" class="auth-tab" id="tabRegister" onclick="window._authSwitch('register')">Criar conta</button>
+      <button type="button" class="auth-tab active" id="tabLogin" onclick="window.switchToLogin()">Entrar</button>
+      <button type="button" class="auth-tab" id="tabRegister" onclick="window.switchToRegister()">Criar conta</button>
     </div>
 
-    <!-- LOGIN VIEW -->
     <div id="loginView" class="auth-view-anim">
       <div class="auth-brand">
         <img src="https://i.imgur.com/vzRbA64.png" alt="Logo">
         <h1>Dashboard MKT</h1>
         <p>Orçamento × Realizado</p>
       </div>
-      
       <form id="loginForm" class="auth-form" onsubmit="return false;">
         <div class="input-group">
           <label for="loginEmail">E-mail corporativo</label>
           <input type="email" id="loginEmail" placeholder="seu.nome@oestesaude.com.br" autocomplete="email" required>
           <span class="domain-hint" id="loginDomainHint"></span>
         </div>
-
         <div class="input-group">
           <label for="loginPassword">Senha</label>
           <input type="password" id="loginPassword" placeholder="Digite sua senha" autocomplete="current-password" required>
         </div>
-
         <button type="submit" class="auth-btn" id="loginBtn">Entrar</button>
         <p class="auth-error" id="loginError"></p>
       </form>
     </div>
 
-    <!-- REGISTER VIEW -->
     <div id="registerView" style="display:none" class="auth-view-anim">
       <div class="auth-brand">
         <img src="https://i.imgur.com/vzRbA64.png" alt="Logo">
         <h1>Criar Conta</h1>
         <p>Apenas e-mails corporativos</p>
       </div>
-      
       <form id="registerForm" class="auth-form" onsubmit="return false;">
         <div class="input-group">
           <label for="regName">Nome completo</label>
           <input type="text" id="regName" placeholder="Seu nome" autocomplete="name" required>
         </div>
-
         <div class="input-group">
           <label for="regEmail">E-mail corporativo</label>
           <input type="email" id="regEmail" placeholder="seu.nome@oestesaude.com.br" autocomplete="email" required>
           <span class="domain-hint" id="regDomainHint"></span>
         </div>
-
         <div class="input-group">
           <label for="regPassword">Senha</label>
           <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
         </div>
-
         <button type="submit" class="auth-btn" id="registerBtn">Criar conta</button>
         <p class="auth-error" id="registerError"></p>
       </form>
     </div>
-
   </div>
 </section>
 
-<!-- ========================================== -->
-<!-- FALLBACK INLINE — FUNCIONA SEM MODULE      -->
-<!-- ========================================== -->
-<script>
-(function(){
-  'use strict';
-  var DOMAIN = 'oestesaude.com.br';
-  
-  window._authSwitch = function(view) {
-    var loginView = document.getElementById('loginView');
-    var registerView = document.getElementById('registerView');
-    var tabLogin = document.getElementById('tabLogin');
-    var tabRegister = document.getElementById('tabRegister');
-    
-    if (!loginView || !registerView) return;
-    
-    var errLogin = document.getElementById('loginError');
-    var errReg = document.getElementById('registerError');
-    if (errLogin) { errLogin.textContent = ''; errLogin.className = 'auth-error'; }
-    if (errReg) { errReg.textContent = ''; errReg.className = 'auth-error'; }
-    
-    if (view === 'register') {
-      loginView.style.display = 'none';
-      registerView.style.display = 'block';
-      if (tabLogin) tabLogin.classList.remove('active');
-      if (tabRegister) tabRegister.classList.add('active');
-    } else {
-      registerView.style.display = 'none';
-      loginView.style.display = 'block';
-      if (tabRegister) tabRegister.classList.remove('active');
-      if (tabLogin) tabLogin.classList.add('active');
-    }
-  };
-  
-  function checkDomain(inputId, hintId) {
-    var input = document.getElementById(inputId);
-    var hint = document.getElementById(hintId);
-    if (!input || !hint) return;
-    
-    input.addEventListener('input', function() {
-      var email = input.value.trim();
-      if (!email) {
-        input.classList.remove('valid', 'invalid');
-        hint.classList.remove('show');
-        return;
-      }
-      if (email.toLowerCase().endsWith('@' + DOMAIN)) {
-        input.classList.remove('invalid');
-        input.classList.add('valid');
-        hint.textContent = 'Domínio permitido';
-        hint.className = 'domain-hint success show';
-      } else {
-        input.classList.remove('valid');
-        input.classList.add('invalid');
-        hint.textContent = 'Domínio não permitido';
-        hint.className = 'domain-hint error show';
-      }
-    });
-  }
-  
-  function initValidation() {
-    checkDomain('loginEmail', 'loginDomainHint');
-    checkDomain('regEmail', 'regDomainHint');
-  }
-  
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initValidation);
-  } else {
-    initValidation();
-  }
-  
-  // Debug visual toggle (F2)
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'F2') {
-      var dbg = document.getElementById('moduleDebug');
-      if (dbg) dbg.classList.toggle('show');
-    }
-  });
-})();
-</script>
-
-<!-- ========================================== -->
-<!-- DASHBOARD VIEW                             -->
-<!-- ========================================== -->
 <section id="dashboard-view">
   <header>
     <div class="header-wrapper">
@@ -319,7 +172,6 @@
     </div>
   </main>
 
-  <!-- MODAL LANÇAMENTOS -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <div class="modal-header">
@@ -345,13 +197,7 @@
         <div class="modal-table-wrap">
           <table class="modal-table">
             <thead>
-              <tr>
-                <th>Data</th>
-                <th>Histórico</th>
-                <th>Filial</th>
-                <th style="text-align:right">Débito (R$)</th>
-                <th>Categoria</th>
-              </tr>
+              <tr><th>Data</th><th>Histórico</th><th>Filial</th><th style="text-align:right">Débito (R$)</th><th>Categoria</th></tr>
             </thead>
             <tbody id="modalTableBody"></tbody>
           </table>
@@ -360,7 +206,6 @@
     </div>
   </div>
 
-  <!-- MODAL ADMIN -->
   <div class="modal-overlay" id="adminOverlay">
     <div class="modal" style="max-width:520px">
       <div class="modal-header">
@@ -394,614 +239,13 @@
     </div>
   </div>
 
-  <!-- PDF LOADING -->
   <div class="pdf-loading" id="pdfLoading">
     <div class="spinner"></div>
     <p id="pdfLoadingMsg">Gerando PDF...</p>
   </div>
 </section>
 
-<!-- ========================================== -->
-<!-- FIREBASE + APP MODULE                      -->
-<!-- ========================================== -->
-<script type="module">
-  // ===== CONFIGURAÇÃO FIREBASE (PREENCHA AQUI) =====
-  const firebaseConfig = {
-      apiKey: "AIzaSyCnGOaJ1zDCM-m0tvlohq8OqziLGnIyCqM",
-      authDomain: "login-sistema-mkt.firebaseapp.com",
-      projectId: "login-sistema-mkt",
-      storageBucket: "login-sistema-mkt.firebasestorage.app",
-      messagingSenderId: "136742172158",
-      appId: "1:136742172158:web:951e957a247bdf810afcaf",
-  };
-  const ALLOWED_DOMAIN = "oestesaude.com.br";
-  
-  // ===== DEBUG VISUAL =====
-  const dbg = document.getElementById('moduleDebug');
-  function log(msg, type='info') {
-    console.log(msg);
-    if (!dbg) return;
-    const span = document.createElement('div');
-    span.className = type === 'err' ? 'dbg-err' : type === 'ok' ? 'dbg-ok' : 'dbg-info';
-    span.textContent = '[APP] ' + msg;
-    dbg.appendChild(span);
-  }
-  
-  try {
-    log('Iniciando módulo...');
-    
-    // ===== IMPORTS FIREBASE =====
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js");
-    const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js");
-    const { getFirestore, doc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js");
-    const { getStorage, ref, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js");
-    
-    log('Firebase imports OK', 'ok');
-    
-    // ===== INICIALIZAÇÃO =====
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-    log('Firebase inicializado', 'ok');
-    
-    // ===== HELPERS AUTH =====
-    function isAllowedEmail(email) {
-      return email.toLowerCase().endsWith("@" + ALLOWED_DOMAIN);
-    }
-    
-    function setLoading(btn, isLoading) {
-      if (!btn) return;
-      if (isLoading) {
-        btn.dataset.originalText = btn.textContent;
-        btn.textContent = "";
-        btn.classList.add("loading");
-        btn.disabled = true;
-      } else {
-        btn.textContent = btn.dataset.originalText || "";
-        btn.classList.remove("loading");
-        btn.disabled = false;
-      }
-    }
-    
-    function showError(el, msg) {
-      if (!el) return;
-      el.textContent = msg;
-      el.classList.add('show');
-      log('Erro: ' + msg, 'err');
-    }
-    
-    function hideError(el) {
-      if (!el) return;
-      el.classList.remove('show');
-    }
-    
-    // ===== LOGIN =====
-    async function loginWithEmail(email, password, opts = {}) {
-      const { btn, errorEl } = opts;
-      hideError(errorEl);
-      if (!isAllowedEmail(email)) {
-        showError(errorEl, 'Domínio não permitido');
-        throw new Error('Domínio não autorizado');
-      }
-      setLoading(btn, true);
-      log('Tentando login: ' + email);
-      try {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-        log('Login OK: ' + cred.user.uid, 'ok');
-        return cred;
-      } catch (err) {
-        let msg = 'Erro ao entrar. Tente novamente.';
-        if (err.code === 'auth/invalid-credential') msg = 'E-mail ou senha incorretos.';
-        if (err.code === 'auth/user-not-found') msg = 'Usuário não encontrado.';
-        if (err.code === 'auth/too-many-requests') msg = 'Muitas tentativas. Aguarde.';
-        showError(errorEl, msg);
-        throw err;
-      } finally {
-        setLoading(btn, false);
-      }
-    }
-    
-    // ===== REGISTRO =====
-    async function registerWithEmail(email, password, name, opts = {}) {
-      const { btn, errorEl } = opts;
-      hideError(errorEl);
-      if (!isAllowedEmail(email)) {
-        showError(errorEl, 'Domínio não permitido');
-        throw new Error('Domínio não autorizado');
-      }
-      setLoading(btn, true);
-      log('Tentando cadastro: ' + email);
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        log('Usuário criado: ' + cred.user.uid, 'ok');
-        try {
-          await updateProfile(cred.user, { displayName: name });
-          log('Perfil atualizado', 'ok');
-        } catch (e) {
-          log('Falha no updateProfile: ' + e.message, 'err');
-        }
-        return cred.user;
-      } catch (err) {
-        let msg = 'Erro ao cadastrar. Tente novamente.';
-        if (err.code === 'auth/email-already-in-use') msg = 'Este e-mail já está cadastrado.';
-        if (err.code === 'auth/weak-password') msg = 'A senha deve ter pelo menos 6 caracteres.';
-        if (err.code === 'auth/invalid-email') msg = 'E-mail inválido.';
-        if (err.code === 'auth/operation-not-allowed') msg = 'Cadastro por e-mail não está habilitado no Firebase.';
-        showError(errorEl, msg);
-        throw err;
-      } finally {
-        setLoading(btn, false);
-      }
-    }
-    
-    // ===== UPLOAD PLANILHA =====
-    const PLANILHA_DOC = doc(db, 'config', 'planilha');
-    
-    async function uploadPlanilha(file, user) {
-      if (!file) throw new Error('Nenhum arquivo selecionado.');
-      log('Fazendo upload...');
-      const storageRef = ref(storage, 'planilhas/orcamento-atual.xlsx');
-      await uploadBytes(storageRef, file);
-      await setDoc(PLANILHA_DOC, {
-        path: 'planilhas/orcamento-atual.xlsx',
-        filename: file.name,
-        updatedAt: new Date().toISOString(),
-        updatedBy: user?.displayName || user?.email || 'anon',
-        updatedByUid: user?.uid || 'anon'
-      });
-      log('Upload concluído', 'ok');
-      return true;
-    }
-    
-    function listenPlanilhaMetadata(callback) {
-      return onSnapshot(PLANILHA_DOC, (snap) => {
-        callback(snap.exists() ? snap.data() : null);
-      });
-    }
-    
-    // ===== UI HELPERS =====
-    function initTheme() {
-      const saved = localStorage.getItem('dashboard_theme');
-      if (saved === 'light') document.body.classList.add('light-mode');
-    }
-    
-    initTheme();
-    
-    // ===== ELEMENTS =====
-    const authView = document.getElementById('auth-view');
-    const dashboardView = document.getElementById('dashboard-view');
-    const globalLoading = document.getElementById('globalLoading');
-    
-    // ===== LOGIN LISTENER =====
-    document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      loginWithEmail(email, password, {
-        btn: document.getElementById('loginBtn'),
-        errorEl: document.getElementById('loginError')
-      }).catch(() => {});
-    });
-    
-    // ===== REGISTRO LISTENER =====
-    document.getElementById('registerForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.getElementById('regName').value.trim();
-      const email = document.getElementById('regEmail').value.trim();
-      const password = document.getElementById('regPassword').value;
-      log('Submit registro: ' + email + ' / nome: ' + name);
-      registerWithEmail(email, password, name, {
-        btn: document.getElementById('registerBtn'),
-        errorEl: document.getElementById('registerError')
-      }).then(() => {
-        log('Registro promise OK', 'ok');
-      }).catch((err) => {
-        log('Registro promise erro: ' + err.message, 'err');
-      });
-    });
-    
-    // ===== LOGOUT =====
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
-      signOut(auth);
-    });
-    
-    // ===== ADMIN PANEL =====
-    const adminBtn = document.getElementById('adminBtn');
-    const adminOverlay = document.getElementById('adminOverlay');
-    const adminFileInput = document.getElementById('adminFileInput');
-    const adminFileLabel = document.getElementById('adminFileLabel');
-    const adminUploadBtn = document.getElementById('adminUploadBtn');
-    const adminError = document.getElementById('adminError');
-    
-    adminBtn?.addEventListener('click', () => adminOverlay?.classList.add('open'));
-    document.getElementById('adminClose')?.addEventListener('click', () => adminOverlay?.classList.remove('open'));
-    adminOverlay?.addEventListener('click', e => {
-      if (e.target === adminOverlay) adminOverlay.classList.remove('open');
-    });
-    
-    adminFileInput?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        adminFileLabel.textContent = file.name;
-        adminUploadBtn.disabled = false;
-      }
-    });
-    
-    adminUploadBtn?.addEventListener('click', async () => {
-      const file = adminFileInput?.files[0];
-      if (!file) return;
-      adminUploadBtn.classList.add('loading');
-      adminUploadBtn.disabled = true;
-      try {
-        await uploadPlanilha(file, auth.currentUser);
-        adminError?.classList.remove('show');
-        adminUploadBtn.textContent = 'Enviado!';
-        setTimeout(() => {
-          adminOverlay?.classList.remove('open');
-          adminUploadBtn.textContent = 'Enviar e atualizar';
-          adminUploadBtn.classList.remove('loading');
-          adminUploadBtn.disabled = true;
-          adminFileInput.value = '';
-          adminFileLabel.textContent = 'Selecionar arquivo XLSX';
-        }, 1200);
-      } catch (err) {
-        adminError.textContent = err.message;
-        adminError.classList.add('show');
-        adminUploadBtn.classList.remove('loading');
-        adminUploadBtn.disabled = false;
-      }
-    });
-    
-    // ===== DASHBOARD RENDER (sua lógica original) =====
-    const MONTH_NAMES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
-    const MONTH_COLS = {
-      JANEIRO:[2,3],FEVEREIRO:[5,6],MARÇO:[8,9],ABRIL:[11,12],
-      MAIO:[14,15],JUNHO:[17,18],JULHO:[20,21],AGOSTO:[23,24],
-      SETEMBRO:[26,27],OUTUBRO:[29,30],NOVEMBRO:[32,33],DEZEMBRO:[35,36]
-    };
-    
-    function parseDate(val) {
-      if (!val) return null;
-      if (val instanceof Date) return val;
-      if (typeof val === 'number' && typeof XLSX !== 'undefined') return XLSX.SSF.parse_date_code(val);
-      return new Date(val);
-    }
-    
-    function formatDate(d) {
-      if (!d) return '';
-      try { return (d instanceof Date ? d : new Date(d)).toLocaleDateString('pt-BR'); }
-      catch { return ''; }
-    }
-    
-    function toNum(v) {
-      if (v === null || v === undefined || v === '') return 0;
-      const n = parseFloat(String(v).replace(',', '.'));
-      return isNaN(n) ? 0 : n;
-    }
-    
-    function fmt(n) {
-      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
-    }
-    
-    function fmtShort(n) {
-      if (n >= 1e6) return 'R$ ' + (n/1e6).toFixed(2).replace('.',',') + 'M';
-      if (n >= 1e3) return 'R$ ' + (n/1e3).toFixed(1).replace('.',',') + 'K';
-      return fmt(n);
-    }
-    
-    function tagClass(cat) {
-      if (!cat) return 'tag-out';
-      const c = cat.toLowerCase();
-      if (c.includes('publicidade') || c.includes('propaganda')) return 'tag-pub';
-      if (c.includes('brinde')) return 'tag-bri';
-      if (c.includes('patroc')) return 'tag-pat';
-      if (c.includes('doa')) return 'tag-doa';
-      return 'tag-out';
-    }
-    
-    let globalData = null;
-    let currentModalMonth = null;
-    let unsubPlanilha = null;
-    
-    function renderEmptyState() {
-      document.getElementById('main-content').innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">📊</div>
-          <h2>Nenhuma planilha cadastrada</h2>
-          <p>Aguarde o administrador subir a planilha do mês.<br>
-          <span style="color:var(--green);font-size:12px;margin-top:6px;display:block">✓ Os dados aparecerão automaticamente para todos.</span></p>
-        </div>`;
-      document.getElementById('pdfBtn').disabled = true;
-    }
-    
-    function parseAndRender(wb) {
-      const mktSheet = wb.Sheets[wb.SheetNames[0]];
-      const mktRaw = XLSX.utils.sheet_to_json(mktSheet, { header: 1, defval: null });
-      const totalRowIdx = mktRaw.findIndex(r => r[0] === 'TOTAL');
-      const totalRow = totalRowIdx >= 0 ? mktRaw[totalRowIdx] : mktRaw[9] || [];
-      const catRows = mktRaw.slice(2, totalRowIdx >= 0 ? totalRowIdx : 9).filter(r => r[0]);
-      const orcadoAnual = toNum(totalRow[1]) || 2640000;
-      
-      const months = MONTH_NAMES.map(m => {
-        const [oc, rc] = MONTH_COLS[m];
-        const orcado = toNum(totalRow[oc]) || 0;
-        const realizado = toNum(totalRow[rc]) || 0;
-        const categories = catRows.map(r => ({
-          name: r[0], realizado: toNum(r[rc]) || 0
-        })).filter(c => c.realizado > 0);
-        return { month: m, orcado, realizado, categories, hasData: realizado > 0 };
-      });
-      
-      const lancSheet = wb.Sheets[wb.SheetNames[1]];
-      const lancRaw = XLSX.utils.sheet_to_json(lancSheet, { header: 1, defval: null, cellDates: true });
-      const lancamentos = lancRaw.slice(1).filter(r => r[1]).map(r => ({
-        data: parseDate(r[1]),
-        historico: r[2] || '',
-        filial: r[3] || '',
-        debito: toNum(r[4]) || 0,
-        categoria: r[5] || ''
-      }));
-      
-      globalData = { months, lancamentos, orcadoAnual };
-      renderDashboard();
-      document.getElementById('pdfBtn').disabled = false;
-    }
-    
-    function renderDashboard() {
-      const { months, lancamentos, orcadoAnual } = globalData;
-      const realizados = months.filter(m => m.hasData);
-      const totalRealizado = realizados.reduce((s, m) => s + m.realizado, 0);
-      const totalOrcadoAte = realizados.reduce((s, m) => s + m.orcado, 0);
-      const pctGeral = totalOrcadoAte > 0 ? (totalRealizado / totalOrcadoAte * 100) : 0;
-      const saldo = totalOrcadoAte - totalRealizado;
-      const restante = orcadoAnual - totalRealizado;
-      const pctRestante = orcadoAnual > 0 ? (restante / orcadoAnual * 100) : 0;
-      const pctGasto = orcadoAnual > 0 ? (totalRealizado / orcadoAnual * 100) : 0;
-      const kpiClass = pctRestante <= 20 ? 'red' : pctRestante <= 40 ? 'yellow' : 'green';
-      const barW = Math.min(pctGasto, 100).toFixed(1);
-      const barColor = pctRestante <= 20 ? 'var(--red)' : pctRestante <= 40 ? 'var(--yellow)' : 'var(--green)';
-      
-      document.getElementById('main-content').innerHTML = `
-        <div class="summary-bar">
-          <div class="kpi-card">
-            <div class="kpi-label">Orçado Anual</div>
-            <div class="kpi-value">${fmtShort(orcadoAnual)}</div>
-            <div class="kpi-sub">Total previsto 2026</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Realizado Acumulado</div>
-            <div class="kpi-value ${pctGeral > 100 ? 'red' : 'green'}">${fmtShort(totalRealizado)}</div>
-            <div class="kpi-sub">${realizados.length} ${realizados.length === 1 ? 'mês' : 'meses'} realizados</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Orçamento Restante</div>
-            <div class="kpi-value ${kpiClass}">${fmtShort(restante)}</div>
-            <div class="progress-bar-wrap" style="margin-top:8px"><div class="progress-bar" style="width:${barW}%;background:${barColor}"></div></div>
-            <div class="kpi-sub ${kpiClass}">${pctRestante.toFixed(1)}% restante do orçamento</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Saldo (orçado − realizado)</div>
-            <div class="kpi-value ${saldo < 0 ? 'red' : 'green'}">${fmtShort(Math.abs(saldo))}</div>
-            <div class="kpi-sub">${saldo < 0 ? '▲ Acima do orçado' : '▼ Abaixo do orçado'}</div>
-          </div>
-        </div>
-        <div class="section-title">Meses — clique para ver lançamentos de NF</div>
-        <div class="months-grid">${months.map(m => {
-          const pct = m.orcado ? (m.realizado / m.orcado) * 100 : 0;
-          const barColor = pct > 110 ? 'var(--red)' : pct > 100 ? 'var(--yellow)' : 'var(--green)';
-          const barW = Math.min(pct, 100).toFixed(1);
-          if (!m.hasData) return `<div class="month-card no-data">
-            <div class="month-name">${m.month.toLowerCase()}</div>
-            <div class="month-val" style="color:var(--muted)">${fmtShort(m.orcado)}</div>
-            <div class="month-val-label">orçado</div>
-            <div class="badge-future">Sem lançamentos</div>
-          </div>`;
-          return `<div class="month-card" data-month="${m.month}">
-            <div class="month-name">${m.month.toLowerCase()}</div>
-            <div class="month-val" style="color:${barColor}">${fmtShort(m.realizado)}</div>
-            <div class="month-val-label">realizado de ${fmtShort(m.orcado)}</div>
-            <div class="progress-bar-wrap"><div class="progress-bar" style="width:${barW}%;background:${barColor}"></div></div>
-            <div class="month-pct" style="color:${barColor}">${pct.toFixed(1)}%</div>
-          </div>`;
-        }).join('')}</div>
-        <div class="section-title">Resumo por Categoria (acumulado)</div>
-        ${renderCategoryTable()}
-      `;
-      
-      document.querySelectorAll('.month-card[data-month]').forEach(card => {
-        card.addEventListener('click', () => openModal(card.dataset.month));
-      });
-    }
-    
-    function renderCategoryTable() {
-      const catMap = {};
-      globalData.months.forEach(m => m.categories.forEach(c => {
-        catMap[c.name] = (catMap[c.name] || 0) + c.realizado;
-      }));
-      const cats = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
-      const total = cats.reduce((s,c) => s+c[1], 0);
-      const rows = cats.map(([name, val]) => `<tr>
-        <td><span class="tag ${tagClass(name)}">${name}</span></td>
-        <td class="td-right">${fmt(val)}</td>
-        <td class="td-right">${total > 0 ? (val/total*100).toFixed(1) : '0.0'}%</td>
-      </tr>`).join('');
-      return `<div class="table-wrap">
-        <div class="table-header"><span>Distribuição de Gastos Realizados</span><span style="font-size:12px;color:var(--muted)">Total: ${fmt(total)}</span></div>
-        <table><thead><tr><th>Categoria</th><th style="text-align:right">Realizado (R$)</th><th style="text-align:right">Participação</th></tr></thead>
-        <tbody>${rows}</tbody></table>
-      </div>`;
-    }
-    
-    function openModal(monthName) {
-      const MONTH_NUM = MONTH_NAMES.indexOf(monthName) + 1;
-      currentModalMonth = monthName;
-      const filtered = globalData.lancamentos.filter(l => {
-        if (!l.data) return false;
-        const dt = l.data instanceof Date ? l.data : new Date(l.data);
-        return dt.getMonth() + 1 === MONTH_NUM;
-      });
-      const total = filtered.reduce((s,l) => s+l.debito, 0);
-      document.getElementById('modalTitle').textContent = `Lançamentos — ${monthName.charAt(0)+monthName.slice(1).toLowerCase()}`;
-      document.getElementById('modalSub').textContent = `${filtered.length} NFs · Total: ${fmt(total)}`;
-      renderModalTable(filtered);
-      document.getElementById('modalOverlay').classList.add('open');
-      const search = document.getElementById('modalSearch');
-      search.value = '';
-      search.oninput = e => {
-        const q = e.target.value.toLowerCase();
-        renderModalTable(q ? filtered.filter(l =>
-          l.historico.toLowerCase().includes(q) ||
-          l.categoria.toLowerCase().includes(q) ||
-          String(l.filial).toLowerCase().includes(q)
-        ) : filtered);
-      };
-    }
-    
-    function renderModalTable(rows) {
-      const tbody = document.getElementById('modalTableBody');
-      if (!rows || rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">Nenhum lançamento encontrado.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = rows.map(row => `<tr>
-        <td>${formatDate(row.data)}</td>
-        <td>${row.historico}</td>
-        <td class="td-center">${row.filial}</td>
-        <td style="text-align:right;font-weight:600">${fmt(row.debito)}</td>
-        <td><span class="tag ${tagClass(row.categoria)}">${row.categoria || '—'}</span></td>
-      </tr>`).join('');
-    }
-    
-    document.getElementById('modalClose')?.addEventListener('click', () => {
-      document.getElementById('modalOverlay').classList.remove('open');
-    });
-    document.getElementById('modalOverlay')?.addEventListener('click', e => {
-      if (e.target === document.getElementById('modalOverlay')) document.getElementById('modalOverlay').classList.remove('open');
-    });
-    
-    async function captureToClipboard(label) {
-      const loading = document.getElementById('pdfLoading');
-      const msg = document.getElementById('pdfLoadingMsg');
-      if (!loading || !msg) return;
-      try {
-        msg.textContent = `Capturando ${label || 'tela'}...`;
-        loading.classList.add('show');
-        await new Promise(r => setTimeout(r, 50));
-        const target = document.getElementById('main-content');
-        const canvas = await html2canvas(target, {
-          scale: window.devicePixelRatio || 1,
-          useCORS: true,
-          backgroundColor: document.body.classList.contains('light-mode') ? '#f5f6fa' : '#0f1117'
-        });
-        const blob = await new Promise((res, rej) => {
-          canvas.toBlob(b => b ? res(b) : rej(new Error('Falha')), 'image/png');
-        });
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        msg.textContent = 'Imagem copiada! Agora é só colar (Ctrl+V)';
-        await new Promise(r => setTimeout(r, 2000));
-      } catch (err) {
-        alert('Erro ao capturar: ' + err.message);
-      } finally {
-        loading.classList.remove('show');
-      }
-    }
-    
-    document.getElementById('pdfBtn')?.addEventListener('click', () => captureToClipboard('Dashboard MKT'));
-    document.getElementById('modalPdfBtn')?.addEventListener('click', () => {
-      if (currentModalMonth) captureToClipboard('Lançamentos — ' + currentModalMonth);
-    });
-    
-    function initDashboard() {
-      if (unsubPlanilha) unsubPlanilha();
-      
-      unsubPlanilha = listenPlanilhaMetadata(async (meta) => {
-        const adminInfo = document.getElementById('adminCurrentInfo');
-        if (adminInfo && meta) {
-          const date = new Date(meta.updatedAt).toLocaleString('pt-BR');
-          adminInfo.innerHTML = `<strong>${meta.filename}</strong><br><span style="color:var(--muted);font-size:12px">Atualizado em ${date} por ${meta.updatedBy}</span>`;
-        } else if (adminInfo) {
-          adminInfo.textContent = 'Nenhuma planilha cadastrada.';
-        }
-        
-        if (!meta || !meta.path) {
-          renderEmptyState();
-          return;
-        }
-        
-        try {
-          const url = await getDownloadURL(ref(storage, meta.path));
-          const response = await fetch(url);
-          const arrayBuffer = await response.arrayBuffer();
-          const data = new Uint8Array(arrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-          parseAndRender(workbook);
-          const badge = document.getElementById('savedBadge');
-          badge.style.display = 'flex';
-          badge.querySelector('#savedBadgeText').textContent = `Sincronizado em ${new Date().toLocaleTimeString('pt-BR')}`;
-        } catch (err) {
-          log('Erro ao carregar planilha: ' + err.message, 'err');
-          renderEmptyState();
-        }
-      });
-    }
-    
-    // ===== AUTH STATE =====
-    globalLoading?.classList.add('show');
-    
-    onAuthStateChanged(auth, user => {
-      log('Auth state: ' + (user ? 'LOGADO ' + user.email : 'DESLOGADO'));
-      globalLoading?.classList.remove('show');
-      
-      if (user) {
-        authView?.classList.add('hidden');
-        dashboardView?.classList.add('active');
-        
-        const userInfo = document.getElementById('userInfo');
-        const userName = document.getElementById('userName');
-        if (userName) userName.textContent = user.displayName || user.email;
-        if (userInfo) userInfo.style.display = 'flex';
-        adminBtn?.classList.remove('hidden');
-        
-        initDashboard();
-        
-        if (!document.getElementById('themeToggle')) {
-          const actions = document.querySelector('.header-actions');
-          if (actions) {
-            const btn = document.createElement('button');
-            btn.id = 'themeToggle';
-            btn.className = 'theme-btn';
-            btn.title = 'Alternar Tema';
-            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
-            actions.insertBefore(btn, actions.firstChild);
-            btn.addEventListener('click', () => {
-              document.body.classList.toggle('light-mode');
-              localStorage.setItem('dashboard_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
-            });
-          }
-        }
-      } else {
-        authView?.classList.remove('hidden');
-        dashboardView?.classList.remove('active');
-        const userInfo = document.getElementById('userInfo');
-        if (userInfo) userInfo.style.display = 'none';
-        adminBtn?.classList.add('hidden');
-      }
-    });
-    
-    log('App pronto', 'ok');
-    
-  } catch (fatalErr) {
-    log('FATAL: ' + fatalErr.message, 'err');
-    document.querySelector('.auth-box').innerHTML = `
-      <div style="padding:20px;text-align:center;color:var(--red)">
-        <h3>Erro ao carregar o sistema</h3>
-        <p style="font-size:13px;color:var(--text)">${fatalErr.message}</p>
-        <p style="font-size:12px;color:var(--muted);margin-top:10px">Verifique se preencheu a config do Firebase no código.</p>
-      </div>
-    `;
-  }
-</script>
+<script type="module" src="js/app.js"></script>
 
 </body>
 </html>

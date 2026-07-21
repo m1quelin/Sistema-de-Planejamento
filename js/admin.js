@@ -5,31 +5,32 @@ const PLANILHA_DOC = doc(db, "config", "planilha");
 
 export function listenPlanilhaMetadata(callback) {
   return onSnapshot(PLANILHA_DOC, (snap) => {
-    if (snap.exists()) callback(snap.data());
-    else callback(null);
-  });
-}
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    callback(snap.exists() ? snap.data() : null);
   });
 }
 
 export async function uploadPlanilha(file, user) {
   if (!file) throw new Error("Nenhum arquivo selecionado.");
+  if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+    throw new Error("Apenas arquivos .xlsx ou .xls são permitidos.");
+  }
 
-  const base64 = await fileToBase64(file);
+  // Lê como base64
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
 
+  // Salva no Firestore
   await setDoc(PLANILHA_DOC, {
-    base64: base64,
+    dataBase64: base64,
     filename: file.name,
     updatedAt: new Date().toISOString(),
-    updatedBy: user.displayName || user.email,
-    updatedByUid: user.uid
+    updatedBy: user?.displayName || user?.email || "anon",
+    updatedByUid: user?.uid || "anon",
+    sizeBytes: file.size
   });
 
   return true;
