@@ -382,12 +382,11 @@ function hasLetters(value) {
 }
 
 // ─── VIEW: FORNECEDORES
-// ─── VIEW: FORNECEDORES
 export function renderFornecedoresView(container) {
   let searchTerm = "";
   let editingId = null;
 
-  function renderPage() {
+  function getFilteredList() {
     let list = [...fornecedoresData];
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
@@ -402,14 +401,87 @@ export function renderFornecedoresView(container) {
       );
     }
     list.sort((a, b) => String(a.fornecedor || "").localeCompare(String(b.fornecedor || "")));
+    return list;
+  }
 
+  function renderTable() {
+    const list = getFilteredList();
+    const tbody = document.getElementById("fornTableBody");
+    if (!tbody) return;
+
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">Nenhum fornecedor encontrado.</td></tr>';
+    } else {
+      tbody.innerHTML = list.map(f => {
+        const editable = f.source === "firestore" && f.id;
+        const actions = editable
+          ? `<button class="forn-edit" data-id="${f.id}" title="Editar">✎</button>
+             <button class="forn-delete" data-id="${f.id}" title="Excluir">🗑</button>`
+          : '<span style="color:var(--muted);font-size:11px">—</span>';
+        return `<tr>
+          <td><strong>${f.fornecedor || "—"}</strong></td>
+          <td style="font-size:12px">${f.cnpj ? maskCNPJ(f.cnpj) : "—"}</td>
+          <td>${f.cidade || "—"}</td>
+          <td style="font-size:12px">${f.razao_social || "—"}</td>
+          <td>${f.nome_fantasia || "—"}</td>
+          <td><span class="tag tag-out">${f.tipo_midia || "—"}</span></td>
+          <td style="font-size:12px">${f.contato || "—"}</td>
+          <td class="td-center">${actions}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    // Atualiza contador
+    const counter = document.getElementById("fornCount");
+    if (counter) counter.textContent = `${list.length} cadastrados`;
+
+    // Re-binda edit/delete nos novos botões
+    bindRowActions();
+  }
+
+  function bindRowActions() {
+    document.querySelectorAll(".forn-edit").forEach(btn => {
+      btn.onclick = () => {
+        const f = fornecedoresData.find(x => x.id === btn.dataset.id);
+        if (!f) return;
+        editingId = f.id;
+        document.getElementById("fornFormTitle").textContent = "Editar fornecedor";
+        document.getElementById("fornInputName").value = f.fornecedor || "";
+        document.getElementById("fornInputCnpj").value = maskCNPJ(f.cnpj || "");
+        document.getElementById("fornInputCidade").value = f.cidade || "";
+        document.getElementById("fornInputRazao").value = f.razao_social || "";
+        document.getElementById("fornInputFantasia").value = f.nome_fantasia || "";
+        document.getElementById("fornInputMidia").value = f.tipo_midia || "";
+        document.getElementById("fornInputContato").value = maskPhone(f.contato || "");
+        document.getElementById("fornSubmitBtn").textContent = "Salvar";
+        document.getElementById("fornCancelEdit").style.display = "inline-block";
+        document.getElementById("fornInputName").focus();
+      };
+    });
+
+    document.querySelectorAll(".forn-delete").forEach(btn => {
+      btn.onclick = async () => {
+        const f = fornecedoresData.find(x => x.id === btn.dataset.id);
+        if (!f) return;
+        if (!confirm(`Excluir "${f.fornecedor}"?`)) return;
+        try {
+          await removeFornecedor(f.id);
+        } catch (err) {
+          alert("Erro ao excluir: " + err.message);
+        }
+      };
+    });
+  }
+
+  function renderPage() {
+    const list = getFilteredList();
     const cidades = [...new Set(fornecedoresData.map(f => f.cidade).filter(Boolean))].sort();
 
     container.innerHTML = `
       <div class="fornecedores-page">
         <div class="page-header">
           <h2>Fornecedores</h2>
-          <span style="display: inline-block; margin-bottom: 12px; font-size: 13px; color: var(--muted)">
+                    <span style="display: inline-block; margin-bottom: 12px; font-size: 13px; color: var(--muted)">
             ${list.length} cadastrados
           </span>
         </div>
@@ -457,7 +529,7 @@ export function renderFornecedoresView(container) {
         </div>
 
         <div class="lanc-filters">
-          <input type="text" id="fornSearch" style="margin-bottom:10px"; class="lanc-filter-input" placeholder="Buscar por nome, CNPJ, cidade, contato...">
+          <input type="text" style="margin-bottom:10px; id="fornSearch" class="lanc-filter-input" placeholder="Buscar fornecedor">
         </div>
 
         <div class="table-wrap">
@@ -474,40 +546,19 @@ export function renderFornecedoresView(container) {
                 <th style="text-align:center">Ações</th>
               </tr>
             </thead>
-            <tbody>
-              ${list.length === 0
-                ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">Nenhum fornecedor encontrado.</td></tr>'
-                : list.map(f => {
-                    const editable = f.source === "firestore" && f.id;
-                    const actions = editable
-                      ? `<button class="forn-edit" data-id="${f.id}" title="Editar">✎</button>
-                         <button class="forn-delete" data-id="${f.id}" title="Excluir">🗑</button>`
-                      : '<span style="color:var(--muted);font-size:11px">—</span>';
-                    return `<tr>
-                      <td><strong>${f.fornecedor || "—"}</strong></td>
-                      <td style="font-size:12px">${f.cnpj ? maskCNPJ(f.cnpj) : "—"}</td>
-                      <td>${f.cidade || "—"}</td>
-                      <td style="font-size:12px">${f.razao_social || "—"}</td>
-                      <td>${f.nome_fantasia || "—"}</td>
-                      <td><span class="tag tag-out">${f.tipo_midia || "—"}</span></td>
-                      <td style="font-size:12px">${f.contato || "—"}</td>
-                      <td class="td-center">${actions}</td>
-                    </tr>`;
-                  }).join("")
-              }
-            </tbody>
+            <tbody id="fornTableBody"></tbody>
           </table>
         </div>
       </div>
     `;
 
-    // Bind busca
+    // Busca — só atualiza o tbody, não destrói o input
     document.getElementById("fornSearch")?.addEventListener("input", e => {
       searchTerm = e.target.value;
-      renderPage();
+      renderTable();
     });
 
-    // ─── MÁSCARAS CNPJ e Telefone
+    // Máscaras
     const cnpjInput = document.getElementById("fornInputCnpj");
     const cnpjError = document.getElementById("cnpjError");
 
@@ -553,7 +604,7 @@ export function renderFornecedoresView(container) {
       e.target.value = maskPhone(digits);
     });
 
-    // ─── Submit (add ou edit)
+    // Submit
     document.getElementById("fornSubmitBtn")?.addEventListener("click", async () => {
       const data = {
         fornecedor: document.getElementById("fornInputName").value.trim(),
@@ -573,8 +624,28 @@ export function renderFornecedoresView(container) {
       try {
         if (editingId) {
           await updateFornecedor(editingId, data);
+          editingId = null;
+          document.getElementById("fornFormTitle").textContent = "Adicionar fornecedor";
+          document.getElementById("fornSubmitBtn").textContent = "Adicionar";
+          document.getElementById("fornCancelEdit").style.display = "none";
+          // Limpa form
+          document.getElementById("fornInputName").value = "";
+          document.getElementById("fornInputCnpj").value = "";
+          document.getElementById("fornInputCidade").value = "";
+          document.getElementById("fornInputRazao").value = "";
+          document.getElementById("fornInputFantasia").value = "";
+          document.getElementById("fornInputMidia").value = "";
+          document.getElementById("fornInputContato").value = "";
         } else {
           await addFornecedor(data);
+          // Limpa form
+          document.getElementById("fornInputName").value = "";
+          document.getElementById("fornInputCnpj").value = "";
+          document.getElementById("fornInputCidade").value = "";
+          document.getElementById("fornInputRazao").value = "";
+          document.getElementById("fornInputFantasia").value = "";
+          document.getElementById("fornInputMidia").value = "";
+          document.getElementById("fornInputContato").value = "";
         }
       } catch (err) {
         alert("Erro ao salvar: " + err.message);
@@ -584,45 +655,23 @@ export function renderFornecedoresView(container) {
       }
     });
 
-    // ─── Cancel edit
+    // Cancel edit
     document.getElementById("fornCancelEdit")?.addEventListener("click", () => {
       editingId = null;
-      renderPage();
+      document.getElementById("fornFormTitle").textContent = "Adicionar fornecedor";
+      document.getElementById("fornSubmitBtn").textContent = "Adicionar";
+      document.getElementById("fornCancelEdit").style.display = "none";
+      document.getElementById("fornInputName").value = "";
+      document.getElementById("fornInputCnpj").value = "";
+      document.getElementById("fornInputCidade").value = "";
+      document.getElementById("fornInputRazao").value = "";
+      document.getElementById("fornInputFantasia").value = "";
+      document.getElementById("fornInputMidia").value = "";
+      document.getElementById("fornInputContato").value = "";
     });
 
-    // ─── Edit
-    document.querySelectorAll(".forn-edit").forEach(btn => {
-      btn.onclick = () => {
-        const f = fornecedoresData.find(x => x.id === btn.dataset.id);
-        if (!f) return;
-        editingId = f.id;
-        document.getElementById("fornFormTitle").textContent = "Editar fornecedor";
-        document.getElementById("fornInputName").value = f.fornecedor || "";
-        document.getElementById("fornInputCnpj").value = maskCNPJ(f.cnpj || "");
-        document.getElementById("fornInputCidade").value = f.cidade || "";
-        document.getElementById("fornInputRazao").value = f.razao_social || "";
-        document.getElementById("fornInputFantasia").value = f.nome_fantasia || "";
-        document.getElementById("fornInputMidia").value = f.tipo_midia || "";
-        document.getElementById("fornInputContato").value = maskPhone(f.contato || "");
-        document.getElementById("fornSubmitBtn").textContent = "Salvar";
-        document.getElementById("fornCancelEdit").style.display = "inline-block";
-        document.getElementById("fornInputName").focus();
-      };
-    });
-
-    // ─── Delete
-    document.querySelectorAll(".forn-delete").forEach(btn => {
-      btn.onclick = async () => {
-        const f = fornecedoresData.find(x => x.id === btn.dataset.id);
-        if (!f) return;
-        if (!confirm(`Excluir "${f.fornecedor}"?`)) return;
-        try {
-          await removeFornecedor(f.id);
-        } catch (err) {
-          alert("Erro ao excluir: " + err.message);
-        }
-      };
-    });
+    // Renderiza a tabela pela primeira vez
+    renderTable();
   }
 
   renderPage();
