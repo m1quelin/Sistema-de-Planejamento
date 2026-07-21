@@ -684,3 +684,30 @@ body.light-mode .logo-area img {
     transform: translateY(0);
   }
 }
+
+/* ========== SORT HEADERS ========== */
+.sort-header {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+  position: relative;
+}
+
+.sort-header:hover {
+  color: var(--accent);
+}
+
+.sort-header.active {
+  color: var(--accent);
+}
+
+.sort-indicator {
+  font-size: 10px;
+  margin-left: 4px;
+  opacity: 0.5;
+  display: inline-block;
+}
+
+.sort-header.active .sort-indicator {
+  opacity: 1;
+}

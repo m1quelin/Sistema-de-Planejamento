@@ -1,5 +1,7 @@
 import { showGlobalLoading, hideGlobalLoading, captureToClipboard } from "./ui.js";
 import { listenPlanilhaMetadata } from "./admin.js";
+let currentModalRows = [];
+let sortState = { column: 'data', direction: 'desc' };
 
 const MONTH_NAMES = [
   "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
@@ -232,38 +234,99 @@ function renderCategoryTable() {
   </div>`;
 }
 
-// ─── MODAL ────────────────────────────────────────────────────
 function openModal(monthName) {
   const MONTH_NUM = MONTH_NAMES.indexOf(monthName) + 1;
   currentModalMonth = monthName;
-  const filtered = globalData.lancamentos.filter(l => {
+  currentModalRows = globalData.lancamentos.filter(l => {
     if (!l.data) return false;
     const dt = l.data instanceof Date ? l.data : new Date(l.data);
     return dt.getMonth() + 1 === MONTH_NUM;
   });
-  const total = filtered.reduce((s, l) => s + l.debito, 0);
+
+  const total = currentModalRows.reduce((s, l) => s + l.debito, 0);
   document.getElementById("modalTitle").textContent =
     `Lançamentos — ${monthName.charAt(0) + monthName.slice(1).toLowerCase()}`;
-  document.getElementById("modalSub").textContent = `${filtered.length} NFs · Total: ${fmt(total)}`;
-  renderModalTable(filtered);
+  document.getElementById("modalSub").textContent =
+    `${currentModalRows.length} NFs · Total: ${fmt(total)}`;
+
+  // Reset sort to default
+  sortState = { column: 'data', direction: 'desc' };
+  applySortAndRender();
   document.getElementById("modalOverlay").classList.add("open");
 
   const search = document.getElementById("modalSearch");
   search.value = "";
   search.oninput = e => {
     const q = e.target.value.toLowerCase();
-    renderModalTable(q ? filtered.filter(l =>
+    const filtered = q ? currentModalRows.filter(l =>
       l.historico.toLowerCase().includes(q) ||
       l.categoria.toLowerCase().includes(q) ||
       String(l.filial).toLowerCase().includes(q)
-    ) : filtered);
+    ) : [...currentModalRows];
+    applySortAndRender(filtered);
   };
+
+  bindSortHeaders();
+}
+
+function applySortAndRender(rows = currentModalRows) {
+  const sorted = [...rows].sort((a, b) => {
+    let valA, valB;
+    if (sortState.column === 'data') {
+      valA = a.data instanceof Date ? a.data.getTime() : new Date(a.data).getTime();
+      valB = b.data instanceof Date ? b.data.getTime() : new Date(b.data).getTime();
+    } else {
+      valA = a.debito;
+      valB = b.debito;
+    }
+    if (sortState.direction === 'asc') return valA - valB;
+    return valB - valA;
+  });
+  renderModalTable(sorted);
+  updateSortIndicators();
+}
+
+function updateSortIndicators() {
+  document.querySelectorAll('.sort-header').forEach(th => {
+    const col = th.dataset.sort;
+    const ind = th.querySelector('.sort-indicator');
+    if (!ind) return;
+    if (col === sortState.column) {
+      th.classList.add('active');
+      ind.textContent = sortState.direction === 'asc' ? '▲' : '▼';
+    } else {
+      th.classList.remove('active');
+      ind.textContent = '↕';
+    }
+  });
+}
+
+function bindSortHeaders() {
+  document.querySelectorAll('.sort-header').forEach(th => {
+    th.onclick = () => {
+      const col = th.dataset.sort;
+      if (sortState.column === col) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.column = col;
+        sortState.direction = 'desc';
+      }
+      const search = document.getElementById('modalSearch');
+      const q = search?.value.toLowerCase() || '';
+      const rows = q ? currentModalRows.filter(l =>
+        l.historico.toLowerCase().includes(q) ||
+        l.categoria.toLowerCase().includes(q) ||
+        String(l.filial).toLowerCase().includes(q)
+      ) : [...currentModalRows];
+      applySortAndRender(rows);
+    };
+  });
 }
 
 function renderModalTable(rows) {
   const tbody = document.getElementById("modalTableBody");
   if (!rows || rows.length === 0) {
-    tbody.innerHTML = "<tr><td colspan=\"5\">Nenhum lançamento encontrado.</td></tr>";
+    tbody.innerHTML = '<tr><td colspan="5">Nenhum lançamento encontrado.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(row => `<tr>

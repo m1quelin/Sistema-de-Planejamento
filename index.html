@@ -9,58 +9,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
-  
-  <style>
-    .auth-tabs {
-      display: flex; gap: 0; margin-bottom: 20px;
-      border-bottom: 1px solid var(--border, #2a2f45);
-    }
-    .auth-tab {
-      flex: 1; padding: 12px; background: none; border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--muted, #7b82a0); font-size: 13px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
-      text-transform: uppercase; letter-spacing: 0.05em;
-      font-family: inherit;
-    }
-    .auth-tab:hover { color: var(--text, #e8eaf0); }
-    .auth-tab.active {
-      color: var(--accent, #4f8ef7);
-      border-bottom-color: var(--accent, #4f8ef7);
-    }
-    .domain-hint {
-      font-size: 12px; font-weight: 500; margin-top: 6px;
-      display: none; align-items: center; gap: 4px;
-    }
-    .domain-hint.show { display: flex; }
-    .domain-hint.error { color: var(--red, #f06a4e); }
-    .domain-hint.success { color: var(--green, #38d9a9); }
-    .input-group input.valid {
-      border-color: var(--green, #38d9a9) !important;
-      box-shadow: 0 0 0 3px rgba(56, 217, 169, 0.15) !important;
-    }
-    .input-group input.invalid {
-      border-color: var(--red, #f06a4e) !important;
-      box-shadow: 0 0 0 3px rgba(240, 106, 78, 0.15) !important;
-    }
-    .link-btn {
-      background: none; border: none; color: var(--accent, #4f8ef7);
-      font-family: inherit; font-size: 13px; font-weight: 600;
-      cursor: pointer; padding: 0; text-decoration: none;
-    }
-    .link-btn:hover { text-decoration: underline; }
-    .auth-footer {
-      text-align: center; margin-top: 20px; padding-top: 16px;
-      border-top: 1px solid var(--border, #2a2f45);
-      font-size: 13px; color: var(--muted, #7b82a0);
-    }
-    #loginView, #registerView { width: 100%; }
-    .auth-view-anim { animation: fadeInAuth 0.2s ease; }
-    @keyframes fadeInAuth {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
 </head>
 <body>
 
@@ -197,7 +145,13 @@
         <div class="modal-table-wrap">
           <table class="modal-table">
             <thead>
-              <tr><th>Data</th><th>Histórico</th><th>Filial</th><th style="text-align:right">Débito (R$)</th><th>Categoria</th></tr>
+              <tr>
+                <th class="sort-header" data-sort="data">Data <span class="sort-indicator">↕</span></th>
+                <th>Histórico</th>
+                <th>Filial</th>
+                <th class="sort-header" data-sort="debito" style="text-align:right">Débito (R$) <span class="sort-indicator">↕</span></th>
+                <th>Categoria</th>
+              </tr>
             </thead>
             <tbody id="modalTableBody"></tbody>
           </table>
