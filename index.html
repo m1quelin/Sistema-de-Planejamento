@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="icon" type="image/png" href="https://i.imgur.com/qVhm3th.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Orçamento MKT</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- CSS INLINE DE GARANTIA (não depende do style.css estar atualizado) -->
+  <style>
+    .auth-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border, #2a2f45);
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 12px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted, #7b82a0);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: inherit;
+    }
+    .auth-tab:hover { color: var(--text, #e8eaf0); }
+    .auth-tab.active {
+      color: var(--accent, #4f8ef7);
+      border-bottom-color: var(--accent, #4f8ef7);
+    }
+    
+    .domain-hint {
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 6px;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+    .domain-hint.show { display: flex; }
+    .domain-hint.error { color: var(--red, #f06a4e); }
+    .domain-hint.success { color: var(--green, #38d9a9); }
+    
+    .input-group input.valid {
+      border-color: var(--green, #38d9a9) !important;
+      box-shadow: 0 0 0 3px rgba(56, 217, 169, 0.15) !important;
+    }
+    .input-group input.invalid {
+      border-color: var(--red, #f06a4e) !important;
+      box-shadow: 0 0 0 3px rgba(240, 106, 78, 0.15) !important;
+    }
+    
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--accent, #4f8ef7);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: none;
+    }
+    .link-btn:hover { text-decoration: underline; }
+    
+    .auth-footer {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border, #2a2f45);
+      font-size: 13px;
+      color: var(--muted, #7b82a0);
+    }
+    
+    /* Garante que views troquem corretamente */
+    #loginView, #registerView { width: 100%; }
+    
+    /* Animação de entrada */
+    @keyframes fadeInAuth {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .auth-view-anim { animation: fadeInAuth 0.2s ease; }
+  </style>
+</head>
+<body>
+
+<!-- LOADING GLOBAL -->
+<div class="global-loading" id="globalLoading">
+  <div class="spinner"></div>
+  <p>Verificando sessão...</p>
+</div>
+
+<!-- ========================================== -->
+<!-- AUTH VIEW                                  -->
+<!-- ========================================== -->
+<section id="auth-view">
+  <div class="auth-box">
+    
+    <!-- TABS -->
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" id="tabLogin" onclick="window._authSwitch('login')">Entrar</button>
+      <button type="button" class="auth-tab" id="tabRegister" onclick="window._authSwitch('register')">Criar conta</button>
+    </div>
+
+    <!-- LOGIN VIEW -->
+    <div id="loginView" class="auth-view-anim">
+      <div class="auth-brand">
+        <img src="https://i.imgur.com/vzRbA64.png" alt="Logo">
+        <h1>Dashboard MKT</h1>
+        <p>Orçamento × Realizado</p>
+      </div>
+      
+      <form id="loginForm" class="auth-form" onsubmit="return false;">
+        <div class="input-group">
+          <label for="loginEmail">E-mail corporativo</label>
+          <input type="email" id="loginEmail" placeholder="seu.nome@oestesaude.com.br" autocomplete="email" required>
+          <span class="domain-hint" id="loginDomainHint"></span>
+        </div>
+
+        <div class="input-group">
+          <label for="loginPassword">Senha</label>
+          <input type="password" id="loginPassword" placeholder="Digite sua senha" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="auth-btn" id="loginBtn">Entrar</button>
+        <p class="auth-error" id="loginError"></p>
+      </form>
+    </div>
+
+    <!-- REGISTER VIEW -->
+    <div id="registerView" style="display:none" class="auth-view-anim">
+      <div class="auth-brand">
+        <img src="https://i.imgur.com/vzRbA64.png" alt="Logo">
+        <h1>Criar Conta</h1>
+        <p>Apenas @oestesaude.com.br</p>
+      </div>
+      
+      <form id="registerForm" class="auth-form" onsubmit="return false;">
+        <div class="input-group">
+          <label for="regName">Nome completo</label>
+          <input type="text" id="regName" placeholder="Seu nome" autocomplete="name" required>
+        </div>
+
+        <div class="input-group">
+          <label for="regEmail">E-mail corporativo</label>
+          <input type="email" id="regEmail" placeholder="seu.nome@oestesaude.com.br" autocomplete="email" required>
+          <span class="domain-hint" id="regDomainHint"></span>
+        </div>
+
+        <div class="input-group">
+          <label for="regPassword">Senha</label>
+          <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
+        </div>
+
+        <button type="submit" class="auth-btn" id="registerBtn">Criar conta</button>
+        <p class="auth-error" id="registerError"></p>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- FALLBACK INLINE — FUNCIONA SEM MODULE      -->
+<!-- ========================================== -->
+<script>
+(function(){
+  'use strict';
+  
+  var DOMAIN = 'oestesaude.com.br';
+  
+  // Toggle entre login e registro
+  window._authSwitch = function(view) {
+    var loginView = document.getElementById('loginView');
+    var registerView = document.getElementById('registerView');
+    var tabLogin = document.getElementById('tabLogin');
+    var tabRegister = document.getElementById('tabRegister');
+    
+    if (!loginView || !registerView) return;
+    
+    // Limpa erros
+    var errLogin = document.getElementById('loginError');
+    var errReg = document.getElementById('registerError');
+    if (errLogin) { errLogin.textContent = ''; errLogin.className = 'auth-error'; }
+    if (errReg) { errReg.textContent = ''; errReg.className = 'auth-error'; }
+    
+    if (view === 'register') {
+      loginView.style.display = 'none';
+      registerView.style.display = 'block';
+      if (tabLogin) tabLogin.classList.remove('active');
+      if (tabRegister) tabRegister.classList.add('active');
+    } else {
+      registerView.style.display = 'none';
+      loginView.style.display = 'block';
+      if (tabRegister) tabRegister.classList.remove('active');
+      if (tabLogin) tabLogin.classList.add('active');
+    }
+  };
+  
+  // Validação de domínio em tempo real
+  function checkDomain(inputId, hintId) {
+    var input = document.getElementById(inputId);
+    var hint = document.getElementById(hintId);
+    if (!input || !hint) return;
+    
+    input.addEventListener('input', function() {
+      var email = input.value.trim();
+      if (!email) {
+        input.classList.remove('valid', 'invalid');
+        hint.classList.remove('show');
+        return;
+      }
+      if (email.toLowerCase().endsWith('@' + DOMAIN)) {
+        input.classList.remove('invalid');
+        input.classList.add('valid');
+        hint.textContent = '✓ Domínio autorizado';
+        hint.className = 'domain-hint success show';
+      } else {
+        input.classList.remove('valid');
+        input.classList.add('invalid');
+        hint.textContent = '✗ Apenas @' + DOMAIN;
+        hint.className = 'domain-hint error show';
+      }
+    });
+  }
+  
+  // Ativa validação assim que DOM carregar
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initValidation);
+  } else {
+    initValidation();
+  }
+  
+  function initValidation() {
+    checkDomain('loginEmail', 'loginDomainHint');
+    checkDomain('regEmail', 'regDomainHint');
+  }
+  
+})();
+</script>
+
+<!-- ========================================== -->
+<!-- DASHBOARD VIEW                             -->
+<!-- ========================================== -->
+<section id="dashboard-view">
+  <header>
+    <div class="header-wrapper">
+      <div class="logo-area">
+        <img src="https://i.imgur.com/vzRbA64.png" alt="Logo">
+        <div class="logo-text">
+          <h1>Dashboard MKT</h1>
+          <p id="headerSub">Orçamento × Realizado</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="saved-badge" id="savedBadge" style="display:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="savedBadgeText">Planilha sincronizada</span>
+        </span>
+        <button class="pdf-btn" id="pdfBtn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="2" y="2" width="20" height="20" rx="3"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <polyline points="8 12 12 16 16 12"/>
+          </svg>
+          Capturar Tela
+        </button>
+        <button class="pdf-btn" id="adminBtn" title="Painel Admin">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          Painel Admin
+        </button>
+        <div class="user-info" id="userInfo" style="display:none">
+          <span id="userName"></span>
+          <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <h2>Nenhuma planilha cadastrada</h2>
+      <p>Aguarde o administrador subir a planilha do mês.<br>
+      <span style="color:var(--green);font-size:12px;margin-top:6px;display:block">✓ Os dados aparecerão automaticamente para todos.</span></p>
+    </div>
+  </main>
+
+  <!-- MODAL LANÇAMENTOS -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modalTitle">Lançamentos</div>
+          <div class="modal-sub" id="modalSub"></div>
+        </div>
+        <div class="modal-header-right">
+          <button class="pdf-btn" id="modalPdfBtn" style="padding:7px 14px;font-size:12px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Capturar mês
+          </button>
+          <button class="modal-close" id="modalClose">✕</button>
+        </div>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="modalSearch" placeholder="Buscar por histórico, categoria...">
+      </div>
+      <div class="modal-body" id="modalBody">
+        <div class="modal-table-wrap">
+          <table class="modal-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Histórico</th>
+                <th>Filial</th>
+                <th style="text-align:right">Débito (R$)</th>
+                <th>Categoria</th>
+              </tr>
+            </thead>
+            <tbody id="modalTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ADMIN -->
+  <div class="modal-overlay" id="adminOverlay">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Painel Admin</div>
+          <div class="modal-sub">Gerenciar planilha do sistema</div>
+        </div>
+        <button class="modal-close" id="adminClose">✕</button>
+      </div>
+      <div class="modal-body" style="padding:24px">
+        <div class="admin-section">
+          <h4>Planilha atual no sistema</h4>
+          <div id="adminCurrentInfo">Nenhuma planilha cadastrada.</div>
+        </div>
+        <div class="admin-section" style="margin-top:24px">
+          <h4>Enviar nova planilha</h4>
+          <label class="upload-btn" style="width:100%;justify-content:center;margin:12px 0 8px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span id="adminFileLabel">Selecionar arquivo XLSX</span>
+            <input type="file" id="adminFileInput" accept=".xlsx,.xls">
+          </label>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:16px">O arquivo substituirá a planilha atual para todos os usuários imediatamente.</p>
+          <button class="auth-btn" id="adminUploadBtn" disabled style="margin:0">Enviar e atualizar</button>
+          <p class="auth-error" id="adminError"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF LOADING -->
+  <div class="pdf-loading" id="pdfLoading">
+    <div class="spinner"></div>
+    <p id="pdfLoadingMsg">Gerando PDF...</p>
+  </div>
+</section>
+
+<!-- ========================================== -->
+<!-- ENTRYPOINT MODULE (Firebase + Dashboard)   -->
+<!-- ========================================== -->
+<script type="module">
+  import { initTheme, setupThemeToggle } from './js/ui.js';
+  import { loginWithEmail, registerWithEmail, logoutUser, onAuthChanged, getCurrentUser } from './js/auth.js';
+  import { initDashboard } from './js/dashboard.js';
+  import { uploadPlanilha } from './js/admin.js';
+
+  console.log("[APP] Módulo carregado com sucesso");
+
+  initTheme();
+
+  const authView = document.getElementById('auth-view');
+  const dashboardView = document.getElementById('dashboard-view');
+  const globalLoading = document.getElementById('globalLoading');
+
+  // Login
+  const loginForm = document.getElementById('loginForm');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+
+  loginForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    console.log("[APP] Login submit:", email);
+    loginWithEmail(email, password, { btn: loginBtn, errorEl: loginError })
+      .then(() => console.log("[APP] Login promise resolvida"))
+      .catch(err => console.error("[APP] Login promise rejeitada:", err));
+  });
+
+  // Registro
+  const registerForm = document.getElementById('registerForm');
+  const registerBtn = document.getElementById('registerBtn');
+  const registerError = document.getElementById('registerError');
+
+  registerForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    console.log("[APP] Registro submit:", email, "| nome:", name);
+    registerWithEmail(email, password, name, { btn: registerBtn, errorEl: registerError })
+      .then((user) => console.log("[APP] Registro promise resolvida, user:", user?.uid))
+      .catch(err => console.error("[APP] Registro promise rejeitada:", err));
+  });
+
+  // Logout
+  document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    console.log("[APP] Logout clicado");
+    logoutUser();
+  });
+
+  // Admin panel
+  const adminBtn = document.getElementById('adminBtn');
+  const adminOverlay = document.getElementById('adminOverlay');
+  const adminFileInput = document.getElementById('adminFileInput');
+  const adminFileLabel = document.getElementById('adminFileLabel');
+  const adminUploadBtn = document.getElementById('adminUploadBtn');
+  const adminError = document.getElementById('adminError');
+
+  adminBtn?.addEventListener('click', () => adminOverlay?.classList.add('open'));
+  document.getElementById('adminClose')?.addEventListener('click', () => adminOverlay?.classList.remove('open'));
+  adminOverlay?.addEventListener('click', e => {
+    if (e.target === adminOverlay) adminOverlay.classList.remove('open');
+  });
+
+  adminFileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      adminFileLabel.textContent = file.name;
+      adminUploadBtn.disabled = false;
+    }
+  });
+
+  adminUploadBtn?.addEventListener('click', async () => {
+    const file = adminFileInput?.files[0];
+    if (!file) return;
+    adminUploadBtn.classList.add('loading');
+    adminUploadBtn.disabled = true;
+    try {
+      await uploadPlanilha(file, getCurrentUser());
+      adminError?.classList.remove('show');
+      adminUploadBtn.textContent = 'Enviado!';
+      setTimeout(() => {
+        adminOverlay?.classList.remove('open');
+        adminUploadBtn.textContent = 'Enviar e atualizar';
+        adminUploadBtn.classList.remove('loading');
+        adminUploadBtn.disabled = true;
+        adminFileInput.value = '';
+        adminFileLabel.textContent = 'Selecionar arquivo XLSX';
+      }, 1200);
+    } catch (err) {
+      adminError.textContent = err.message;
+      adminError.classList.add('show');
+      adminUploadBtn.classList.remove('loading');
+      adminUploadBtn.disabled = false;
+    }
+  });
+
+  // Auth state
+  globalLoading?.classList.add('show');
+
+  onAuthChanged(user => {
+    console.log("[APP] onAuthChanged:", user ? "LOGADO - " + user.email : "DESLOGADO");
+    globalLoading?.classList.remove('show');
+
+    if (user) {
+      authView?.classList.add('hidden');
+      dashboardView?.classList.add('active');
+
+      const userInfo = document.getElementById('userInfo');
+      const userName = document.getElementById('userName');
+      if (userName) userName.textContent = user.displayName || user.email;
+      if (userInfo) userInfo.style.display = 'flex';
+      adminBtn?.classList.remove('hidden');
+
+      initDashboard();
+
+      if (!document.getElementById('themeToggle')) {
+        const actions = document.querySelector('.header-actions');
+        if (actions) {
+          const btn = document.createElement('button');
+          btn.id = 'themeToggle';
+          btn.className = 'theme-btn';
+          btn.title = 'Alternar Tema';
+          btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+          actions.insertBefore(btn, actions.firstChild);
+          setupThemeToggle();
+        }
+      }
+    } else {
+      authView?.classList.remove('hidden');
+      dashboardView?.classList.remove('active');
+      const userInfo = document.getElementById('userInfo');
+      if (userInfo) userInfo.style.display = 'none';
+      adminBtn?.classList.add('hidden');
+    }
+  });
+</script>
+
+</body>
+</html>
