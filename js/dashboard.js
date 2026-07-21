@@ -350,3 +350,4 @@ function bindModalEvents() {
     if (currentModalMonth) captureToClipboard("Lançamentos — " + currentModalMonth);
   });
 }
+

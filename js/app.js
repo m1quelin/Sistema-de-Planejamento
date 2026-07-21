@@ -142,6 +142,31 @@ document.getElementById("pdfBtn")?.addEventListener("click", () => {
   captureToClipboard("Dashboard MKT");
 });
 
+// ─── SIDEBAR 
+const sidebarAdmin = document.getElementById("sidebarAdmin");
+const sidebarLogout = document.getElementById("sidebarLogout");
+
+// Painel Admin pela sidebar
+sidebarAdmin?.addEventListener("click", () => {
+  document.getElementById("adminOverlay")?.classList.add("open");
+});
+
+// Logout pela sidebar
+sidebarLogout?.addEventListener("click", () => {
+  logoutUser();
+});
+
+// Navegação ativa
+document.querySelectorAll(".sidebar-item[data-page]").forEach(item => {
+  item.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.querySelectorAll(".sidebar-item").forEach(i => i.classList.remove("active"));
+    item.classList.add("active");
+    // Por enquanto só Dashboard tem conteúdo real
+    // Os outros são placeholders pra futuras páginas
+  });
+});
+
 // ─── AUTH STATE ───────────────────────────────────────────────
 globalLoading?.classList.add("show");
 
@@ -180,3 +205,4 @@ onAuthChanged(user => {
     adminBtn?.classList.add("hidden");
   }
 });
+
