@@ -2,6 +2,7 @@ import { initTheme, setupThemeToggle, captureToClipboard } from "./ui.js";
 import { loginWithEmail, registerWithEmail, logoutUser, onAuthChanged, getCurrentUser } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { uploadPlanilha } from "./admin.js";
+import { navigateTo } from "./views.js";
 
 initTheme();
 
@@ -142,67 +143,99 @@ document.getElementById("pdfBtn")?.addEventListener("click", () => {
   captureToClipboard("Dashboard MKT");
 });
 
-// ─── SIDEBAR 
+// ─── SIDEBAR ──────────────────────────────────────────────────
 const sidebarAdmin = document.getElementById("sidebarAdmin");
 const sidebarLogout = document.getElementById("sidebarLogout");
 
-// Painel Admin pela sidebar
 sidebarAdmin?.addEventListener("click", () => {
   document.getElementById("adminOverlay")?.classList.add("open");
 });
 
-// Logout pela sidebar
 sidebarLogout?.addEventListener("click", () => {
   logoutUser();
 });
 
-// Navegação ativa
+// Navegação entre abas via views.js
 document.querySelectorAll(".sidebar-item[data-page]").forEach(item => {
   item.addEventListener("click", (e) => {
     e.preventDefault();
-    document.querySelectorAll(".sidebar-item").forEach(i => i.classList.remove("active"));
-    item.classList.add("active");
-    // Por enquanto só Dashboard tem conteúdo real
-    // Os outros são placeholders pra futuras páginas
+    navigateTo(item.dataset.page);
   });
 });
 
-// ─── AUTH STATE ───────────────────────────────────────────────
-globalLoading?.classList.add("show");
+// ─── DEV MODE ─────────────────────────────────────────────────
+const isDevMode = new URLSearchParams(window.location.search).get('dev') === '1';
 
-onAuthChanged(user => {
+if (isDevMode) {
   globalLoading?.classList.remove("show");
+  authView?.classList.add("hidden");
+  dashboardView?.classList.add("active");
+  adminBtn?.classList.remove("hidden");
 
-  if (user) {
-    authView?.classList.add("hidden");
-    dashboardView?.classList.add("active");
+  const userInfo = document.getElementById("userInfo");
+  const userName = document.getElementById("userName");
+  if (userName) userName.textContent = "Modo Dev (Preview)";
+  if (userInfo) userInfo.style.display = "flex";
 
-    const userInfo = document.getElementById("userInfo");
-    const userName = document.getElementById("userName");
-    if (userName) userName.textContent = user.displayName || user.email;
-    if (userInfo) userInfo.style.display = "flex";
-    adminBtn?.classList.remove("hidden");
+  initDevDashboard();
+  navigateTo("dashboard");
 
-    initDashboard();
-
-    if (!document.getElementById("themeToggle")) {
-      const actions = document.querySelector(".header-actions");
-      if (actions) {
-        const btn = document.createElement("button");
-        btn.id = "themeToggle";
-        btn.className = "theme-btn";
-        btn.title = "Alternar Tema";
-        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
-        actions.insertBefore(btn, actions.firstChild);
-        setupThemeToggle();
-      }
+  if (!document.getElementById("themeToggle")) {
+    const actions = document.querySelector(".header-actions");
+    if (actions) {
+      const btn = document.createElement("button");
+      btn.id = "themeToggle";
+      btn.className = "theme-btn";
+      btn.title = "Alternar Tema";
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+      actions.insertBefore(btn, actions.firstChild);
+      setupThemeToggle();
     }
-  } else {
-    authView?.classList.remove("hidden");
-    dashboardView?.classList.remove("active");
-    const userInfo = document.getElementById("userInfo");
-    if (userInfo) userInfo.style.display = "none";
-    adminBtn?.classList.add("hidden");
   }
-});
+} else {
+  // ─── AUTH STATE (produção) ──────────────────────────────────
+  globalLoading?.classList.add("show");
 
+  onAuthChanged(user => {
+    globalLoading?.classList.remove("show");
+
+    if (user) {
+      authView?.classList.add("hidden");
+      dashboardView?.classList.add("active");
+
+      const userInfo = document.getElementById("userInfo");
+      const userName = document.getElementById("userName");
+      if (userName) userName.textContent = user.displayName || user.email;
+      if (userInfo) userInfo.style.display = "flex";
+      adminBtn?.classList.remove("hidden");
+
+      // Inicializa dashboard + fornecedores
+      initDashboard();
+      listenFornecedores((data) => {
+        // onSnapshot do Firestore atualiza em tempo real
+        // o dashboard.js usa fornecedoresData diretamente
+      });
+
+      navigateTo("dashboard");
+
+      if (!document.getElementById("themeToggle")) {
+        const actions = document.querySelector(".header-actions");
+        if (actions) {
+          const btn = document.createElement("button");
+          btn.id = "themeToggle";
+          btn.className = "theme-btn";
+          btn.title = "Alternar Tema";
+          btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+          actions.insertBefore(btn, actions.firstChild);
+          setupThemeToggle();
+        }
+      }
+    } else {
+      authView?.classList.remove("hidden");
+      dashboardView?.classList.remove("active");
+      const userInfo = document.getElementById("userInfo");
+      if (userInfo) userInfo.style.display = "none";
+      adminBtn?.classList.add("hidden");
+    }
+  });
+}
