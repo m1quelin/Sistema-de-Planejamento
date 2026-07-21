@@ -201,21 +201,24 @@ if (isDevMode) {
     globalLoading?.classList.remove("show");
 
     if (user) {
-      authView?.classList.add("hidden");
-      dashboardView?.classList.add("active");
+        authView?.classList.add("hidden");
+        dashboardView?.classList.add("active");
 
-      const userInfo = document.getElementById("userInfo");
-      const userName = document.getElementById("userName");
-      if (userName) userName.textContent = user.displayName || user.email;
-      if (userInfo) userInfo.style.display = "flex";
-      adminBtn?.classList.remove("hidden");
+        const userInfo = document.getElementById("userInfo");
+        const userName = document.getElementById("userName");
+        if (userName) {
+          const fullName = user.displayName || user.email || "Usuário";
+          const firstName = fullName.split(" ")[0];
+          userName.textContent = `Olá, ${firstName}!`;
+        }
+        if (userInfo) userInfo.style.display = "flex";
+        adminBtn?.classList.remove("hidden");
 
-      // Inicializa dashboard + fornecedores
-      initDashboard();
-      listenFornecedores((data) => {
-        // onSnapshot do Firestore atualiza em tempo real
-        // o dashboard.js usa fornecedoresData diretamente
-      });
+        // Inicializa dashboard + fornecedores
+        initDashboard();
+        listenFornecedores((data) => {
+          onFornecedoresUpdate(data);
+        });
 
       navigateTo("dashboard");
 
