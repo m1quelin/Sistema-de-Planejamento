@@ -424,7 +424,9 @@ export function renderFornecedoresView(container) {
           <td>${f.cidade || "—"}</td>
           <td style="font-size:12px">${f.razao_social || "—"}</td>
           <td>${f.nome_fantasia || "—"}</td>
-          <td><span class="tag tag-out">${f.tipo_midia || "—"}</span></td>
+          <td>${f.tipo_midia
+          ? f.tipo_midia.split(",").map(t => `<span class="tag tag-out">${t.trim()}</span>`).join(" ")
+          : "—"}</td>
           <td style="font-size:12px">${f.contato || "—"}</td>
           <td class="td-center">${actions}</td>
         </tr>`;
