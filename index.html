@@ -87,27 +87,22 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           <span>Dashboard</span>
         </a>
-
         <a class="sidebar-item" data-page="lancamentos">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
           <span>Lançamentos</span>
         </a>
-
         <a class="sidebar-item" data-page="categorias">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           <span>Categorias</span>
         </a>
-
         <a class="sidebar-item" data-page="relatorios">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           <span>Relatórios</span>
         </a>
-
         <a class="sidebar-item" id="sidebarAdmin">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           <span>Painel Admin</span>
         </a>
-
         <a class="sidebar-item" data-page="config">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Configurações</span>
@@ -124,8 +119,8 @@
 
     <!-- CONTEÚDO PRINCIPAL -->
     <div class="dashboard-main">
+
       <header>
-        <!-- Tudo que já está no seu header atual continua aqui igual -->
         <div class="header-wrapper">
           <div class="logo-area">
             <img src="https://i.imgur.com/vzRbA64.png" alt="Logo">
@@ -147,14 +142,6 @@
               </svg>
               Capturar Tela
             </button>
-            <button class="pdf-btn" id="adminBtn" title="Painel Admin">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-              </svg>
-              Painel Admin
-            </button>
             <div class="user-info" id="userInfo" style="display:none">
               <span id="userName"></span>
               <button class="logout-btn" id="logoutBtn">Sair</button>
@@ -172,12 +159,88 @@
         </div>
       </main>
 
-      <!-- MODAIS continuam aqui dentro -->
-      <div class="modal-overlay" id="modalOverlay"><!-- ... --></div>
-      <div class="modal-overlay" id="adminOverlay"><!-- ... --></div>
-      <div class="pdf-loading" id="pdfLoading"><!-- ... --></div>
-    </div>
+      <!-- MODAL LANÇAMENTOS -->
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+          <div class="modal-header">
+            <div>
+              <div class="modal-title" id="modalTitle">Lançamentos</div>
+              <div class="modal-sub" id="modalSub"></div>
+            </div>
+            <div class="modal-header-right">
+              <button class="pdf-btn" id="modalPdfBtn" style="padding:7px 14px;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Capturar mês
+              </button>
+              <button class="modal-close" id="modalClose">✕</button>
+            </div>
+          </div>
+          <div class="modal-search">
+            <input type="text" id="modalSearch" placeholder="Buscar por histórico, categoria...">
+          </div>
+          <div class="modal-body" id="modalBody">
+            <div class="modal-table-wrap">
+              <table class="modal-table">
+                <thead>
+                  <tr>
+                    <th class="sort-header" data-sort="data">Data <span class="sort-indicator">↕</span></th>
+                    <th>Histórico</th>
+                    <th>Filial</th>
+                    <th class="sort-header" data-sort="debito" style="text-align:right">Débito (R$) <span class="sort-indicator">↕</span></th>
+                    <th>Categoria</th>
+                  </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <!-- MODAL ADMIN -->
+      <div class="modal-overlay" id="adminOverlay">
+        <div class="modal" style="max-width:520px">
+          <div class="modal-header">
+            <div>
+              <div class="modal-title">Painel Admin</div>
+              <div class="modal-sub">Gerenciar planilha do sistema</div>
+            </div>
+            <button class="modal-close" id="adminClose">✕</button>
+          </div>
+          <div class="modal-body" style="padding:24px">
+            <div class="admin-section">
+              <h4>Planilha atual no sistema</h4>
+              <div id="adminCurrentInfo">Nenhuma planilha cadastrada.</div>
+            </div>
+            <div class="admin-section" style="margin-top:24px">
+              <h4>Enviar nova planilha</h4>
+              <label class="upload-btn" style="width:100%;justify-content:center;margin:12px 0 8px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span id="adminFileLabel">Selecionar arquivo XLSX</span>
+                <input type="file" id="adminFileInput" accept=".xlsx,.xls">
+              </label>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:16px">O arquivo substituirá a planilha atual para todos os usuários imediatamente.</p>
+              <button class="auth-btn" id="adminUploadBtn" disabled style="margin:0">Enviar e atualizar</button>
+              <p class="auth-error" id="adminError"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF LOADING -->
+      <div class="pdf-loading" id="pdfLoading">
+        <div class="spinner"></div>
+        <p id="pdfLoadingMsg">Gerando PDF...</p>
+      </div>
+
+    </div>
   </div>
 </section>
 

@@ -141,6 +141,7 @@ tbody tr:hover td { background: rgba(79,142,247,.04); }
 .td-right { text-align: right; }
 .td-center { text-align: center; }
 .modal-overlay {
+  z-index: 200;
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,.7); z-index: 1000;
   align-items: center; justify-content: center;
@@ -728,7 +729,7 @@ body.light-mode .logo-area img {
   top: 0;
   left: 0;
   height: 100vh;
-  z-index: 100;
+  z-index: 90;
   transition: width 0.2s ease;
 }
 
@@ -815,6 +816,8 @@ body.light-mode .logo-area img {
   position: sticky;
   top: 0;
   z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Responsivo: sidebar colapsa em ícones */
