@@ -80,6 +80,20 @@ export function initDashboard() {
   bindModalEvents();
 }
 
+export function onFornecedoresUpdate(data) {
+  fornecedoresData = data || [];
+  console.log("[DEBUG] Fornecedores recebidos:", fornecedoresData.length, fornecedoresData);
+
+  const container = document.getElementById("main-content");
+  if (!container) return;
+
+  if (document.getElementById("fornTable")) {
+    renderFornecedoresView(container);
+  } else if (document.getElementById("lancTable")) {
+    renderLancamentosView(container);
+  }
+}
+
 // ─── DEV MODE ────────────────────────────────────────────────
 export function initDevDashboard() {
   const currentMonth = new Date().getMonth();
@@ -249,11 +263,11 @@ export function renderLancamentosView(container) {
           if (match) cidade = match.cidade || "";
         }
 
-        const cidadeClass = isOverridden ? "cidade-override" : (cidade ? "cidade-auto" : "cidade-empty");
+        const cidadeClass = isOverridden ? "cidade-override" : (cidade ? "cidade" : "cidade-empty");
         const cidadeBadge = isOverridden
           ? '<span class="override-badge" title="Editado">✎</span>'
           : cidade
-            ? '<span class="auto-badge" title="Auto">auto</span>'
+            ? '<span class="auto-badge" title=""></span>'
             : "";
 
         const monthName = (() => {

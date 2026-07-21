@@ -68,14 +68,22 @@ export function matchFornecedor(historico, fornecedores) {
   if (!historico || !fornecedores) return null;
   const h = historico.toLowerCase();
 
+  // 1. Match exato em qualquer um dos 3 campos
   let match = fornecedores.find(f =>
-    String(f.fornecedor || "").toLowerCase() === h
+    String(f.fornecedor || "").toLowerCase() === h ||
+    String(f.razao_social || "").toLowerCase() === h ||
+    String(f.nome_fantasia || "").toLowerCase() === h
   );
 
+  // 2. Match parcial (includes) nos 3 campos
   if (!match) {
     match = fornecedores.find(f => {
       const fn = String(f.fornecedor || "").toLowerCase();
-      return fn && (h.includes(fn) || fn.includes(h));
+      const fr = String(f.razao_social || "").toLowerCase();
+      const ff = String(f.nome_fantasia || "").toLowerCase();
+      return (fn && (h.includes(fn) || fn.includes(h))) ||
+             (fr && (h.includes(fr) || fr.includes(h))) ||
+             (ff && (h.includes(ff) || ff.includes(h)));
     });
   }
 
