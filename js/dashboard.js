@@ -3,6 +3,7 @@ import { listenPlanilhaMetadata } from "./admin.js";
 import { fetchFornecedores, listenFornecedores, matchFornecedor, lancamentoId, getCidadesConhecidas, addFornecedor, updateFornecedor, removeFornecedor } from "./fornecedores.js";
 import { listenOverrides, getOverride, saveOverride, removeOverride } from "./overrides.js";
 
+
 // ─── CONSTANTES ──────────────────────────────────────────────
 const MONTH_NAMES = [
   "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
@@ -190,7 +191,34 @@ export function renderLancamentosView(container) {
   let sortCol = "data";
   let sortDir = "desc";
 
-  const allCategories = [...new Set(globalData.lancamentos.map(l => l.categoria).filter(Boolean))].sort();
+  function resolveCategoria(row) {
+  const lId = lancamentoId(row, "all");
+  const override = getOverride(lId);
+
+  // Se tem override de categoria, usa ele
+  if (override && override.categoria) {
+    return { categoria: override.categoria, opcoes: [], isOverride: true };
+  }
+
+  // Tenta match com fornecedor
+  const match = matchFornecedor(row.historico, fornecedoresData);
+  if (match && match.tipo_midia) {
+    const categorias = match.tipo_midia.split(",").map(t => t.trim()).filter(Boolean);
+    if (categorias.length > 0) {
+      return { categoria: categorias[0], opcoes: categorias, isOverride: false };
+    }
+  }
+
+  // Fallback: categoria da planilha
+  return { categoria: row.categoria || "", opcoes: [], isOverride: false };
+}
+
+  const allCategories = [...new Set([
+  ...fornecedoresData.flatMap(f =>
+    (f.tipo_midia || "").split(",").map(t => t.trim()).filter(Boolean)
+  ),
+  ...globalData.lancamentos.map(l => l.categoria).filter(Boolean)
+])].sort();
   const allCidades = [...new Set(
     globalData.lancamentos.map(l => {
       const match = matchFornecedor(l.historico, fornecedoresData);
@@ -210,8 +238,11 @@ export function renderLancamentosView(container) {
       });
     }
     if (filterCategory !== "all") {
-      rows = rows.filter(l => l.categoria === filterCategory);
-    }
+  rows = rows.filter(l => {
+    const resolved = resolveCategoria(l);
+    return resolved.categoria === filterCategory;
+  });
+}
     if (filterCidade !== "all") {
       rows = rows.filter(l => {
         const match = matchFornecedor(l.historico, fornecedoresData);
@@ -219,13 +250,14 @@ export function renderLancamentosView(container) {
       });
     }
     if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      rows = rows.filter(l =>
-        l.historico.toLowerCase().includes(q) ||
-        (l.categoria || "").toLowerCase().includes(q) ||
-        String(l.filial).toLowerCase().includes(q)
-      );
-    }
+  const q = searchTerm.toLowerCase();
+  rows = rows.filter(l => {
+    const resolved = resolveCategoria(l);
+    return l.historico.toLowerCase().includes(q) ||
+      (resolved.categoria || "").toLowerCase().includes(q) ||
+      String(l.filial).toLowerCase().includes(q);
+  });
+}
     rows.sort((a, b) => {
       let valA, valB;
       if (sortCol === "data") {
@@ -282,7 +314,20 @@ export function renderLancamentosView(container) {
           <td>${row.historico}</td>
           <td class="td-center">${row.filial}</td>
           <td style="text-align:right;font-weight:600">${fmt(row.debito)}</td>
-          <td><span class="tag ${tagClass(row.categoria)}">${row.categoria || "—"}</span></td>
+          ${(() => {
+  const catResolved = resolveCategoria(row);
+  if (catResolved.opcoes.length > 1) {
+    return `<td><select class="cat-select" data-lancamento-id="${lId}">
+      ${catResolved.opcoes.map(c =>
+        `<option value="${c}" ${c === catResolved.categoria ? "selected" : ""}>${c}</option>`
+      ).join("")}
+    </select></td>`;
+  }
+  const catBadge = catResolved.isOverride
+    ? ' <span class="override-badge" title="Editado">✎</span>'
+    : "";
+  return `<td><span class="tag ${tagClass(catResolved.categoria)}">${catResolved.categoria || "—"}</span>${catBadge}</td>`;
+})()}
           <td class="td-center">
             <div class="cidade-cell ${cidadeClass}" data-lancamento-id="${lId}">
               <span class="cidade-text">${cidade || "—"}</span>
@@ -296,6 +341,14 @@ export function renderLancamentosView(container) {
         cell.addEventListener("click", () => editCidade(cell));
       });
     }
+    tbody.querySelectorAll(".cat-select").forEach(sel => {
+  sel.addEventListener("change", async (e) => {
+    const lId = e.target.dataset.lancamentoId;
+    const existing = getOverride(lId) || {};
+    saveOverride(lId, { ...existing, categoria: e.target.value });
+    renderTable();
+  });
+});
 
     const totalEl = document.getElementById("lancTotal");
     if (totalEl) totalEl.textContent = `${rows.length} lancamentos · ${fmt(total)}`;
@@ -369,6 +422,307 @@ export function renderLancamentosView(container) {
   });
 
   renderTable();
+}
+
+export function renderCategoriasView(container) {
+  if (!globalData) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h2>Sem dados para exibir</h2>
+        <p>Aguarde o administrador subir a planilha.</p>
+      </div>`;
+    return;
+  }
+
+  function getCatLanc(l) {
+    const match = matchFornecedor(l.historico, fornecedoresData);
+    if (match && match.tipo_midia) {
+      const cats = match.tipo_midia.split(",").map(t => t.trim()).filter(Boolean);
+      if (cats.length > 0) {
+        const lId = lancamentoId(l, "all");
+        const override = getOverride(lId);
+        return (override && override.categoria) ? override.categoria : cats[0];
+      }
+    }
+    return l.categoria || "Sem categoria";
+  }
+
+  const catData = {};
+  globalData.lancamentos.forEach(l => {
+    const cat = getCatLanc(l);
+    if (!catData[cat]) catData[cat] = { total: 0, count: 0, fornecedores: new Set() };
+    catData[cat].total += l.debito || 0;
+    catData[cat].count++;
+    const m = matchFornecedor(l.historico, fornecedoresData);
+    if (m) catData[cat].fornecedores.add(m.fornecedor || m.razao_social || "—");
+  });
+
+  const sortedCats = Object.entries(catData).sort((a, b) => b[1].total - a[1].total);
+  const totalGeral = sortedCats.reduce((s, [_, d]) => s + d.total, 0);
+  const TOP_N = 5;
+
+  const fornComCats = fornecedoresData.map(f => {
+    const cats = (f.tipo_midia || "").split(",").map(t => t.trim()).filter(Boolean);
+    return { ...f, _cats: cats };
+  });
+
+  const fornValueByCat = {};
+  globalData.lancamentos.forEach(l => {
+    const cat = getCatLanc(l);
+    const match = matchFornecedor(l.historico, fornecedoresData);
+    if (!match) return;
+    const fornKey = match.fornecedor || match.razao_social || "—";
+    if (!fornValueByCat[cat]) fornValueByCat[cat] = {};
+    if (!fornValueByCat[cat][fornKey]) fornValueByCat[cat][fornKey] = 0;
+    fornValueByCat[cat][fornKey] += l.debito || 0;
+  });
+
+  let activeCategory = null;
+  let showAll = false;
+
+  function renderBreakdown() {
+    const visibleCats = showAll ? sortedCats : sortedCats.slice(0, TOP_N);
+    const isGrid = showAll && visibleCats.length > 8;
+
+    if (isGrid) {
+      // Grade de colunas quando expandido
+      return `
+        <div class="cat-grid-expanded">
+          ${visibleCats.map(([cat, d]) => {
+            const pct = totalGeral > 0 ? (d.total / totalGeral * 100) : 0;
+            const isActive = activeCategory === cat;
+            return `
+              <div class="cat-grid-item ${isActive ? "active" : ""}" data-cat="${cat}">
+                <div class="cat-grid-item-top">
+                  <span class="cat-grid-dot" style="background:${tagColor(cat)}"></span>
+                  <span class="cat-grid-name">${cat}</span>
+                </div>
+                <div class="cat-grid-value">${fmt(d.total)}</div>
+                <div class="cat-grid-pct">${pct.toFixed(1)}% · ${d.count} lanç.</div>
+              </div>`;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    // Lista de barras horizontais (padrão)
+    return `
+      <div class="cat-breakdown-list">
+        ${visibleCats.map(([cat, d]) => {
+          const pct = totalGeral > 0 ? (d.total / totalGeral * 100) : 0;
+          const isActive = activeCategory === cat;
+          return `
+            <div class="cat-breakdown-row ${isActive ? "active" : ""}" data-cat="${cat}">
+              <span class="cat-breakdown-dot" style="background:${tagColor(cat)}"></span>
+              <span class="cat-breakdown-name">${cat}</span>
+              <div class="cat-breakdown-track">
+                <div class="cat-breakdown-fill" style="width:${pct}%; background:${tagColor(cat)}"></div>
+              </div>
+              <span class="cat-breakdown-pct">${pct.toFixed(1)}%</span>
+              <span class="cat-breakdown-value">${fmt(d.total)}</span>
+            </div>`;
+        }).join("")}
+      </div>
+    `;
+  }
+
+    function renderDetail() {
+    if (!activeCategory) return "";
+
+    const filteredForns = fornComCats
+      .filter(f => f._cats.includes(activeCategory))
+      .map(f => {
+        const fornKey = f.fornecedor || f.razao_social || "—";
+        const valor = (fornValueByCat[activeCategory] && fornValueByCat[activeCategory][fornKey]) || 0;
+        return { ...f, _valor: valor };
+      })
+      .sort((a, b) => b._valor - a._valor);
+
+    const catInfo = catData[activeCategory];
+
+    return `
+      <div class="cat-detail">
+        <div class="cat-detail-header">
+          <div>
+            <h3 class="cat-detail-title">
+              <span class="cat-detail-icon">${tagIcon(activeCategory)}</span>
+              ${activeCategory}
+            </h3>
+            <div class="cat-detail-stats">
+              <span>${fmt(catInfo.total)}</span>
+              <span class="cat-detail-sep">·</span>
+              <span>${catInfo.count} lançamentos</span>
+              <span class="cat-detail-sep">·</span>
+              <span>${filteredForns.length} fornecedores</span>
+            </div>
+          </div>
+          <button class="cat-back-btn" id="catBackBtn">✕ Fechar</button>
+        </div>
+        <div class="table-wrap">
+          <table class="modal-table">
+            <thead>
+              <tr>
+                <th>Fornecedor</th>
+                <th>Razão Social</th>
+                <th>Categoria(s)</th>
+                <th>Cidade</th>
+                <th style="text-align:right">Investido</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredForns.length > 0
+                ? filteredForns.map(f => `
+                    <tr>
+                      <td>${f.fornecedor || "—"}</td>
+                      <td>${f.razao_social || "—"}</td>
+                      <td>${f._cats.map(c => `<span class="tag ${tagClass(c)}" style="margin-right:4px">${c}</span>`).join("") || "—"}</td>
+                      <td>${f.cidade || "—"}</td>
+                      <td style="text-align:right;font-weight:600">${fmt(f._valor)}</td>
+                    </tr>
+                  `).join("")
+                : `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Nenhum fornecedor nesta categoria.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderAll() {
+    return `
+      <div class="categorias-page">
+        <div class="cat-page-header">
+          <h2>Categorias</h2>
+          <span class="cat-subtitle">${sortedCats.length} categorias · ${fmt(totalGeral)}</span>
+        </div>
+
+        <div class="cat-overview">
+          <div class="cat-overview-total">
+            <span class="cat-overview-label">Total investido</span>
+            <span class="cat-overview-amount">${fmt(totalGeral)}</span>
+          </div>
+
+          <div id="catBreakdownArea">
+            ${renderBreakdown()}
+          </div>
+
+          <div class="cat-overview-actions">
+            ${sortedCats.length > TOP_N
+              ? `<button class="cat-toggle-btn" id="catToggleBtn">
+                  ${showAll ? "Ver menos" : `Ver todas (${sortedCats.length})`}
+                </button>`
+              : ""
+            }
+          </div>
+        </div>
+
+        <div id="catDetailArea">
+          ${renderDetail()}
+        </div>
+      </div>
+    `;
+  }
+
+  function refreshBreakdown() {
+    const area = container.querySelector("#catBreakdownArea");
+    if (area) area.innerHTML = renderBreakdown();
+    bindBreakdown();
+  }
+
+  function refreshDetail() {
+    const area = container.querySelector("#catDetailArea");
+    if (area) area.innerHTML = renderDetail();
+    bindBack();
+  }
+
+  function bindBreakdown() {
+    container.querySelectorAll("[data-cat]").forEach(row => {
+      row.addEventListener("click", () => {
+        const cat = row.dataset.cat;
+        activeCategory = activeCategory === cat ? null : cat;
+        // Atualiza só classes (sem re-render do breakdown)
+        container.querySelectorAll("[data-cat]").forEach(r => {
+          r.classList.toggle("active", r.dataset.cat === activeCategory);
+        });
+        // Re-render só do detalhe
+        refreshDetail();
+      });
+    });
+  }
+
+  function bindToggle() {
+    const btn = container.querySelector("#catToggleBtn");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      showAll = !showAll;
+      refreshBreakdown();
+      // Recria o botão com texto novo
+      const actions = container.querySelector(".cat-overview-actions");
+      if (actions) {
+        actions.innerHTML = sortedCats.length > TOP_N
+          ? `<button class="cat-toggle-btn" id="catToggleBtn">
+              ${showAll ? "Ver menos" : `Ver todas (${sortedCats.length})`}
+            </button>`
+          : "";
+        bindToggle();
+      }
+    });
+  }
+
+  function bindBack() {
+    const btn = container.querySelector("#catBackBtn");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      activeCategory = null;
+      container.querySelectorAll("[data-cat]").forEach(r => r.classList.remove("active"));
+      refreshDetail();
+    });
+  }
+
+  container.innerHTML = renderAll();
+  bindBreakdown();
+  bindToggle();
+  bindBack();
+}
+
+function tagIcon(cat) {
+  const icons = {
+    "rádio": "📻",
+    "radio": "📻",
+    "tv": "📺",
+    "outdoor": "🪧",
+    "internet": "🌐",
+    "digital": "📱",
+    "jornal": "📰",
+    "revista": "📖",
+    "gráfica": "🖨️",
+    "grafica": "🖨️",
+    "events": "🎪",
+    "eventos": "🎪",
+  };
+  const key = cat.toLowerCase().trim();
+  return icons[key] || "📊";
+}
+
+function tagColor(cat) {
+  const colors = {
+    "rádio": "#f59e0b",
+    "radio": "#f59e0b",
+    "tv": "#ef4444",
+    "outdoor": "#10b981",
+    "internet": "#3b82f6",
+    "digital": "#3b82f6",
+    "jornal": "#8b5cf6",
+    "revista": "#ec4899",
+    "gráfica": "#14b8a6",
+    "grafica": "#14b8a6",
+    "events": "#f97316",
+    "eventos": "#f97316",
+  };
+  const key = cat.toLowerCase().trim();
+  return colors[key] || "#6366f1";
 }
 
 // ─── MÁSCARAS DE INPUT

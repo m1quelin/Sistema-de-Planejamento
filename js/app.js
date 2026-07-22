@@ -2,6 +2,7 @@ import { initTheme, setupThemeToggle, captureToClipboard } from "./ui.js";
 import { loginWithEmail, registerWithEmail, logoutUser, onAuthChanged, getCurrentUser } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { onFornecedoresUpdate } from "./dashboard.js";
+import { listenFornecedores } from "./fornecedores.js";
 import { uploadPlanilha } from "./admin.js";
 import { navigateTo } from "./views.js";
 

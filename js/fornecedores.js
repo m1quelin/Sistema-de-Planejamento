@@ -66,28 +66,58 @@ export async function removeFornecedor(id) {
 // ─── MATCH
 export function matchFornecedor(historico, fornecedores) {
   if (!historico || !fornecedores) return null;
-  const h = historico.toLowerCase();
 
-  // 1. Match exato em qualquer um dos 3 campos
-  let match = fornecedores.find(f =>
-    String(f.fornecedor || "").toLowerCase() === h ||
-    String(f.razao_social || "").toLowerCase() === h ||
-    String(f.nome_fantasia || "").toLowerCase() === h
-  );
+  const normalize = (str) =>
+    String(str || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[_\-\.;,\/\()]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-  // 2. Match parcial (includes) nos 3 campos
-  if (!match) {
-    match = fornecedores.find(f => {
-      const fn = String(f.fornecedor || "").toLowerCase();
-      const fr = String(f.razao_social || "").toLowerCase();
-      const ff = String(f.nome_fantasia || "").toLowerCase();
-      return (fn && (h.includes(fn) || fn.includes(h))) ||
-             (fr && (h.includes(fr) || fr.includes(h))) ||
-             (ff && (h.includes(ff) || ff.includes(h)));
-    });
+  const h = normalize(historico);
+
+  const STOPWORDS = new Set([
+    "e", "de", "da", "do", "das", "dos", "me", "lt", "ltda",
+    "sa", "cia", "nf", "ltd", "mei", "sl", "sc"
+  ]);
+
+  const hTokens = h.split(" ").filter(t => t.length > 1);
+  const hTokenSet = new Set(hTokens);
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const f of fornecedores) {
+    const rs = normalize(f.razao_social);
+    if (!rs || rs.length < 3) continue;
+
+    // 1. Substring direto (casa mais específico)
+    if (h.includes(rs) || rs.includes(h)) {
+      const score = rs.length;
+      if (score > bestScore) { bestScore = score; bestMatch = f; }
+      continue;
+    }
+
+    // 2. Token match — lida com histórico truncado
+    const rsTokens = rs.split(" ").filter(t => t.length > 1 && !STOPWORDS.has(t));
+    if (rsTokens.length === 0) continue;
+
+    let matches = 0;
+    for (const t of rsTokens) {
+      if (hTokenSet.has(t)) matches++;
+    }
+
+    // Precisa de no mínimo 60% dos tokens da razão social + pelo menos 2 acertos
+    const pct = matches / rsTokens.length;
+    if (pct >= 0.6 && matches >= 2) {
+      const score = pct * rs.length;
+      if (score > bestScore) { bestScore = score; bestMatch = f; }
+    }
   }
 
-  return match || null;
+  return bestMatch;
 }
 
 // ─── ID DE LANÇAMENTO (pra overrides)
