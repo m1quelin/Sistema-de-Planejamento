@@ -343,9 +343,9 @@ export function renderLancamentosView(container) {
               <th>Mes</th>
               <th>Historico</th>
               <th>Filial</th>
-              <th class="sort-header" data-sort="debito" style="text-align:right">Debito (R$) <span class="sort-indicator">↕</span></th>
+              <th class="sort-header" data-sort="" style="text-align:right"> (R$) <span class="sort-indicator">↕</span></th>
               <th>Categoria</th>
-              <th>Cidade/Destino</th>
+              <th>Cidade</th>
             </tr>
           </thead>
           <tbody id="lancTableBody"></tbody>
@@ -795,8 +795,6 @@ function renderDashboard() {
         <div class="month-pct" style="color:${bc}">${pct.toFixed(1)}%</div>
       </div>`;
     }).join("")}</div>
-    <div class="section-title">Resumo por Categoria (acumulado)</div>
-    ${renderCategoryTable()}
   `;
 
   document.querySelectorAll(".month-card[data-month]").forEach(card => {
@@ -936,7 +934,7 @@ function renderModalTable(rows) {
     const cidadeBadge = isOverridden
       ? '<span class="override-badge" title="Editado pelo usuario">✎</span>'
       : cidade
-        ? '<span class="auto-badge" title="Auto-preenchido">auto</span>'
+        ? '<span class="auto-badge" title=""></span>'
         : "";
 
     return `<tr data-lancamento-id="${lId}">

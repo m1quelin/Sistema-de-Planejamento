@@ -83,7 +83,7 @@ main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
 }
 .months-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 2fr));
   gap: 14px;
   margin-bottom: 32px;
 }
@@ -152,7 +152,7 @@ tbody tr:hover td { background: rgba(79,142,247,.04); }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  width: 92vw; max-width: 920px;
+  width: 92vw; max-width: 1020px;
   max-height: 85vh;
   display: flex; flex-direction: column;
   overflow: hidden;
