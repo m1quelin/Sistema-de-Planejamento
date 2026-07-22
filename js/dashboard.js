@@ -568,7 +568,6 @@ export function renderFornecedoresView(container) {
       </div>
     `;
 
-    // Busca — só atualiza o tbody, não destrói o input
     document.getElementById("fornSearch")?.addEventListener("input", e => {
       searchTerm = e.target.value;
       renderTable();
