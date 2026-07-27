@@ -91,10 +91,8 @@ document.getElementById("registerForm")?.addEventListener("submit", (e) => {
 document.getElementById("logoutBtn")?.addEventListener("click", logoutUser);
 
 // ─── ADMIN PANEL ──────────────────────────────────────────────
-const adminBtn = document.getElementById("adminBtn");
 const adminOverlay = document.getElementById("adminOverlay");
 
-adminBtn?.addEventListener("click", () => adminOverlay?.classList.add("open"));
 document.getElementById("adminClose")?.addEventListener("click", () => {
   adminOverlay?.classList.remove("open");
 });
@@ -172,7 +170,6 @@ if (isDevMode) {
   globalLoading?.classList.remove("show");
   authView?.classList.add("hidden");
   dashboardView?.classList.add("active");
-  adminBtn?.classList.remove("hidden");
 
   const userInfo = document.getElementById("userInfo");
   const userName = document.getElementById("userName");
@@ -213,7 +210,6 @@ if (isDevMode) {
           userName.textContent = `Olá, ${firstName}!`;
         }
         if (userInfo) userInfo.style.display = "flex";
-        adminBtn?.classList.remove("hidden");
 
         // Inicializa dashboard + fornecedores
         initDashboard();
@@ -240,7 +236,6 @@ if (isDevMode) {
       dashboardView?.classList.remove("active");
       const userInfo = document.getElementById("userInfo");
       if (userInfo) userInfo.style.display = "none";
-      adminBtn?.classList.add("hidden");
     }
   });
 }

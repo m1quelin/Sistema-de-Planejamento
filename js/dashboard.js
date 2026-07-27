@@ -2,6 +2,7 @@ import { showGlobalLoading, hideGlobalLoading, captureToClipboard } from "./ui.j
 import { listenPlanilhaMetadata } from "./admin.js";
 import { fetchFornecedores, listenFornecedores, matchFornecedor, lancamentoId, getCidadesConhecidas, addFornecedor, updateFornecedor, removeFornecedor } from "./fornecedores.js";
 import { listenOverrides, getOverride, saveOverride, removeOverride } from "./overrides.js";
+import { navigateTo } from "./views.js";
 
 
 // ─── CONSTANTES ──────────────────────────────────────────────
@@ -17,10 +18,8 @@ const MONTH_COLS = {
 
 // ─── ESTADO ──────────────────────────────────────────────────
 let globalData = null;
-let currentModalMonth = null;
-let currentModalRows = [];
-let sortState = { column: 'data', direction: 'desc' };
 let unsubPlanilha = null;
+let pendingMonthFilter = null; // mês selecionado ao clicar no card do dashboard, aplicado na próxima abertura da aba Lançamentos
 
 let fornecedoresData = [];
 let overridesData = {};
@@ -77,8 +76,6 @@ export function initDashboard() {
       renderEmptyState();
     }
   });
-
-  bindModalEvents();
 }
 
 export function onFornecedoresUpdate(data) {
@@ -135,7 +132,6 @@ export function initDevDashboard() {
 
   globalData = { months: mockMonths, lancamentos: mockLancamentos, orcadoAnual: 2640000 };
   renderDashboard();
-  bindModalEvents();
 
   const badge = document.getElementById("savedBadge");
   if (badge) {
@@ -184,7 +180,8 @@ export function renderLancamentosView(container) {
     return;
   }
 
-  let filterMonth = "all";
+  let filterMonth = pendingMonthFilter || "all";
+  pendingMonthFilter = null;
   let filterCategory = "all";
   let filterCidade = "all";
   let searchTerm = "";
@@ -367,6 +364,47 @@ export function renderLancamentosView(container) {
     });
   }
 
+  function editCidade(cell) {
+    const lId = cell.dataset.lancamentoId;
+    const textEl = cell.querySelector(".cidade-text");
+    const currentText = textEl.textContent === "—" ? "" : textEl.textContent;
+
+    const cidadesConhecidas = getCidadesConhecidas(fornecedoresData);
+
+    cell.innerHTML = `
+      <div class="cidade-edit-wrap">
+        <input type="text" class="cidade-input" value="${currentText}"
+          list="cidadesListLanc" placeholder="Digite a cidade...">
+        <datalist id="cidadesListLanc">
+          ${cidadesConhecidas.map(c => `<option value="${c}">`).join("")}
+        </datalist>
+        <button class="cidade-save" title="Salvar">✓</button>
+        <button class="cidade-cancel" title="Cancelar">✕</button>
+      </div>
+    `;
+
+    const input = cell.querySelector(".cidade-input");
+    input.focus();
+    input.select();
+
+    cell.querySelector(".cidade-save").onclick = async () => {
+      const newCidade = input.value.trim();
+      if (newCidade) {
+        await saveOverride(lId, { cidade: newCidade });
+      } else {
+        await removeOverride(lId);
+      }
+      renderTable();
+    };
+
+    cell.querySelector(".cidade-cancel").onclick = () => renderTable();
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") cell.querySelector(".cidade-save").click();
+      if (e.key === "Escape") cell.querySelector(".cidade-cancel").click();
+    });
+  }
+
   container.innerHTML = `
     <div class="lancamentos-page">
       <div class="page-header">
@@ -375,8 +413,8 @@ export function renderLancamentosView(container) {
       </div>
       <div class="lanc-filters">
         <select id="filterMonth" class="lanc-filter-select">
-          <option value="all">Todos os meses</option>
-          ${MONTH_NAMES.map(m => `<option value="${m}">${m.charAt(0)+m.slice(1).toLowerCase()}</option>`).join("")}
+          <option value="all" ${filterMonth === "all" ? "selected" : ""}>Todos os meses</option>
+          ${MONTH_NAMES.map(m => `<option value="${m}" ${m === filterMonth ? "selected" : ""}>${m.charAt(0)+m.slice(1).toLowerCase()}</option>`).join("")}
         </select>
         <select id="filterCategory" class="lanc-filter-select">
           <option value="all">Todas as categorias</option>
@@ -1086,7 +1124,10 @@ function renderDashboard() {
   `;
 
   document.querySelectorAll(".month-card[data-month]").forEach(card => {
-    card.addEventListener("click", () => openModal(card.dataset.month));
+    card.addEventListener("click", () => {
+      pendingMonthFilter = card.dataset.month;
+      navigateTo("lancamentos");
+    });
   });
 }
 
@@ -1107,204 +1148,6 @@ function renderCategoryTable() {
     <table><thead><tr><th>Categoria</th><th style="text-align:right">Realizado (R$)</th><th style="text-align:right">Participacao</th></tr></thead>
     <tbody>${rows}</tbody></table>
   </div>`;
-}
-
-// ─── MODAL ───────────────────────────────────────────────────
-function openModal(monthName) {
-  const MONTH_NUM = MONTH_NAMES.indexOf(monthName) + 1;
-  currentModalMonth = monthName;
-  currentModalRows = globalData.lancamentos.filter(l => {
-    if (!l.data) return false;
-    const dt = l.data instanceof Date ? l.data : new Date(l.data);
-    return dt.getMonth() + 1 === MONTH_NUM;
-  });
-
-  const total = currentModalRows.reduce((s, l) => s + l.debito, 0);
-  document.getElementById("modalTitle").textContent =
-    `Lancamentos — ${monthName.charAt(0) + monthName.slice(1).toLowerCase()}`;
-  document.getElementById("modalSub").textContent =
-    `${currentModalRows.length} NFs · Total: ${fmt(total)}`;
-
-  sortState = { column: 'data', direction: 'desc' };
-  applySortAndRender();
-  document.getElementById("modalOverlay").classList.add("open");
-
-  const search = document.getElementById("modalSearch");
-  search.value = "";
-  search.oninput = e => {
-    const q = e.target.value.toLowerCase();
-    const filtered = q ? currentModalRows.filter(l =>
-      l.historico.toLowerCase().includes(q) ||
-      (l.categoria || "").toLowerCase().includes(q) ||
-      String(l.filial).toLowerCase().includes(q)
-    ) : [...currentModalRows];
-    applySortAndRender(filtered);
-  };
-  bindSortHeaders();
-}
-
-function applySortAndRender(rows = currentModalRows) {
-  const sorted = [...rows].sort((a, b) => {
-    let valA, valB;
-    if (sortState.column === 'data') {
-      valA = a.data instanceof Date ? a.data.getTime() : new Date(a.data).getTime();
-      valB = b.data instanceof Date ? b.data.getTime() : new Date(b.data).getTime();
-    } else {
-      valA = a.debito;
-      valB = b.debito;
-    }
-    if (sortState.direction === 'asc') return valA - valB;
-    return valB - valA;
-  });
-  renderModalTable(sorted);
-  updateSortIndicators();
-}
-
-function updateSortIndicators() {
-  document.querySelectorAll('.sort-header').forEach(th => {
-    const col = th.dataset.sort;
-    const ind = th.querySelector('.sort-indicator');
-    if (!ind) return;
-    if (col === sortState.column) {
-      th.classList.add('active');
-      ind.textContent = sortState.direction === 'asc' ? '▲' : '▼';
-    } else {
-      th.classList.remove('active');
-      ind.textContent = '↕';
-    }
-  });
-}
-
-function bindSortHeaders() {
-  document.querySelectorAll('.sort-header').forEach(th => {
-    th.onclick = () => {
-      const col = th.dataset.sort;
-      if (sortState.column === col) {
-        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        sortState.column = col;
-        sortState.direction = 'desc';
-      }
-      const search = document.getElementById('modalSearch');
-      const q = search?.value.toLowerCase() || '';
-      const rows = q ? currentModalRows.filter(l =>
-        l.historico.toLowerCase().includes(q) ||
-        (l.categoria || "").toLowerCase().includes(q) ||
-        String(l.filial).toLowerCase().includes(q)
-      ) : [...currentModalRows];
-      applySortAndRender(rows);
-    };
-  });
-}
-
-function renderModalTable(rows) {
-  const tbody = document.getElementById("modalTableBody");
-  if (!tbody) return;
-  if (!rows || rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6">Nenhum lancamento encontrado.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.map(row => {
-    const lId = lancamentoId(row, currentModalMonth);
-    const override = getOverride(lId);
-    let cidade = "";
-    let isOverridden = false;
-
-    if (override) {
-      cidade = override.cidade || "";
-      isOverridden = true;
-    } else if (fornecedoresData.length > 0) {
-      const match = matchFornecedor(row.historico, fornecedoresData);
-      if (match) cidade = match.cidade || "";
-    }
-
-    const cidadeClass = isOverridden ? "cidade-override" : (cidade ? "cidade-auto" : "cidade-empty");
-    const cidadeBadge = isOverridden
-      ? '<span class="override-badge" title="Editado pelo usuario">✎</span>'
-      : cidade
-        ? '<span class="auto-badge" title=""></span>'
-        : "";
-
-    return `<tr data-lancamento-id="${lId}">
-      <td>${formatDate(row.data)}</td>
-      <td>${row.historico}</td>
-      <td class="td-center">${row.filial}</td>
-      <td style="text-align:right;font-weight:600">${fmt(row.debito)}</td>
-      <td><span class="tag ${tagClass(row.categoria)}">${row.categoria || "—"}</span></td>
-      <td class="td-center">
-        <div class="cidade-cell ${cidadeClass}" data-lancamento-id="${lId}">
-          <span class="cidade-text">${cidade || "—"}</span>
-          ${cidadeBadge}
-        </div>
-      </td>
-    </tr>`;
-  }).join("");
-
-  tbody.querySelectorAll(".cidade-cell").forEach(cell => {
-    cell.addEventListener("click", () => editCidade(cell));
-  });
-}
-
-function editCidade(cell) {
-  const lId = cell.dataset.lancamentoId;
-  const textEl = cell.querySelector(".cidade-text");
-  const currentText = textEl.textContent === "—" ? "" : textEl.textContent;
-
-  const cidadesConhecidas = getCidadesConhecidas(fornecedoresData);
-
-  cell.innerHTML = `
-    <div class="cidade-edit-wrap">
-      <input type="text" class="cidade-input" value="${currentText}"
-        list="cidadesListModal" placeholder="Digite a cidade...">
-      <datalist id="cidadesListModal">
-        ${cidadesConhecidas.map(c => `<option value="${c}">`).join("")}
-      </datalist>
-      <button class="cidade-save" title="Salvar">✓</button>
-      <button class="cidade-cancel" title="Cancelar">✕</button>
-    </div>
-  `;
-
-  const input = cell.querySelector(".cidade-input");
-  input.focus();
-  input.select();
-
-  cell.querySelector(".cidade-save").onclick = async () => {
-    const newCidade = input.value.trim();
-    if (newCidade) {
-      await saveOverride(lId, { cidade: newCidade });
-    } else {
-      await removeOverride(lId);
-    }
-  };
-
-  cell.querySelector(".cidade-cancel").onclick = () => {
-    const search = document.getElementById("modalSearch");
-    const q = search?.value.toLowerCase() || '';
-    const rows = q ? currentModalRows.filter(l =>
-      l.historico.toLowerCase().includes(q) ||
-      (l.categoria || "").toLowerCase().includes(q) ||
-      String(l.filial).toLowerCase().includes(q)
-    ) : [...currentModalRows];
-    applySortAndRender(rows);
-  };
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") cell.querySelector(".cidade-save").click();
-    if (e.key === "Escape") cell.querySelector(".cidade-cancel").click();
-  });
-}
-
-function bindModalEvents() {
-  document.getElementById("modalClose")?.addEventListener("click", () => {
-    document.getElementById("modalOverlay").classList.remove("open");
-  });
-  document.getElementById("modalOverlay")?.addEventListener("click", e => {
-    if (e.target === document.getElementById("modalOverlay"))
-      document.getElementById("modalOverlay").classList.remove("open");
-  });
-  document.getElementById("modalPdfBtn")?.addEventListener("click", () => {
-    if (currentModalMonth) captureToClipboard("Lancamentos — " + currentModalMonth);
-  });
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
