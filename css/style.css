@@ -1058,7 +1058,7 @@ body.light-mode .logo-area img {
 
 /* ========== PÁGINA FORNECEDORES ========== */
 .fornecedores-page {
-  padding: 24px;
+  padding: 0px;
 }
 
 .forn-form {
@@ -1517,7 +1517,7 @@ body.light-mode .logo-area img {
 }
 
 .lancamentos-page {
-  padding: var(--space-xl);
+  padding: 0;
   animation: pageIn 0.25s ease;
 }
 

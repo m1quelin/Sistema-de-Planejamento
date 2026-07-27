@@ -595,9 +595,9 @@ function renderBreakdown() {
           <div data-cat="${cat}" style="background:rgba(255,255,255,0.04);border:1px solid #444;border-radius:10px;padding:14px;cursor:pointer;min-height:80px;display:flex;flex-direction:column;justify-content:space-between;">
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;background:${tagColor(cat)};flex-shrink:0;"></span>
-              <span style="font-size:12px;font-weight:600;color:#fff;">${cat}</span>
+              <span style="font-size:12px;font-weight:600;color:#variable;">${cat}</span>
             </div>
-            <div style="font-size:18px;font-weight:800;color:#fff;">${fmt(d.total)}</div>
+            <div style="font-size:18px;font-weight:800;color:#variable;">${fmt(d.total)}</div>
             <div style="font-size:11px;color:#888;">${pct.toFixed(1)}% · ${d.count} lanç.</div>
           </div>`;
     }).join("");
