@@ -189,33 +189,28 @@ export function renderLancamentosView(container) {
   let sortDir = "desc";
 
   function resolveCategoria(row) {
-  const lId = lancamentoId(row, "all");
-  const override = getOverride(lId);
-
-  // Se tem override de categoria, usa ele
-  if (override && override.categoria) {
-    return { categoria: override.categoria, opcoes: [], isOverride: true };
-  }
-
-  // Tenta match com fornecedor
-  const match = matchFornecedor(row.historico, fornecedoresData);
-  if (match && match.tipo_midia) {
-    const categorias = match.tipo_midia.split(",").map(t => t.trim()).filter(Boolean);
-    if (categorias.length > 0) {
-      return { categoria: categorias[0], opcoes: categorias, isOverride: false };
+    const lId = lancamentoId(row, "all");
+    const override = getOverride(lId);
+    if (override && override.categoria) {
+      return { categoria: override.categoria, opcoes: [], isOverride: true };
     }
+    const match = matchFornecedor(row.historico, fornecedoresData);
+    if (match && match.tipo_midia) {
+      const categorias = match.tipo_midia.split(",").map(t => t.trim()).filter(Boolean);
+      if (categorias.length > 0) {
+        return { categoria: categorias[0], opcoes: categorias, isOverride: false };
+      }
+    }
+    return { categoria: row.categoria || "", opcoes: [], isOverride: false };
   }
-
-  // Fallback: categoria da planilha
-  return { categoria: row.categoria || "", opcoes: [], isOverride: false };
-}
 
   const allCategories = [...new Set([
-  ...fornecedoresData.flatMap(f =>
-    (f.tipo_midia || "").split(",").map(t => t.trim()).filter(Boolean)
-  ),
-  ...globalData.lancamentos.map(l => l.categoria).filter(Boolean)
-])].sort();
+    ...fornecedoresData.flatMap(f =>
+      (f.tipo_midia || "").split(",").map(t => t.trim()).filter(Boolean)
+    ),
+    ...globalData.lancamentos.map(l => l.categoria).filter(Boolean)
+  ])].sort();
+
   const allCidades = [...new Set(
     globalData.lancamentos.map(l => {
       const match = matchFornecedor(l.historico, fornecedoresData);
@@ -225,7 +220,6 @@ export function renderLancamentosView(container) {
 
   function getFiltered() {
     let rows = [...globalData.lancamentos];
-
     if (filterMonth !== "all") {
       const monthNum = MONTH_NAMES.indexOf(filterMonth) + 1;
       rows = rows.filter(l => {
@@ -235,11 +229,11 @@ export function renderLancamentosView(container) {
       });
     }
     if (filterCategory !== "all") {
-  rows = rows.filter(l => {
-    const resolved = resolveCategoria(l);
-    return resolved.categoria === filterCategory;
-  });
-}
+      rows = rows.filter(l => {
+        const resolved = resolveCategoria(l);
+        return resolved.categoria === filterCategory;
+      });
+    }
     if (filterCidade !== "all") {
       rows = rows.filter(l => {
         const match = matchFornecedor(l.historico, fornecedoresData);
@@ -247,14 +241,14 @@ export function renderLancamentosView(container) {
       });
     }
     if (searchTerm) {
-  const q = searchTerm.toLowerCase();
-  rows = rows.filter(l => {
-    const resolved = resolveCategoria(l);
-    return l.historico.toLowerCase().includes(q) ||
-      (resolved.categoria || "").toLowerCase().includes(q) ||
-      String(l.filial).toLowerCase().includes(q);
-  });
-}
+      const q = searchTerm.toLowerCase();
+      rows = rows.filter(l => {
+        const resolved = resolveCategoria(l);
+        return l.historico.toLowerCase().includes(q) ||
+          (resolved.categoria || "").toLowerCase().includes(q) ||
+          String(l.filial).toLowerCase().includes(q);
+      });
+    }
     rows.sort((a, b) => {
       let valA, valB;
       if (sortCol === "data") {
@@ -274,7 +268,6 @@ export function renderLancamentosView(container) {
     const total = rows.reduce((s, l) => s + l.debito, 0);
     const tbody = document.getElementById("lancTableBody");
     if (!tbody) return;
-
     if (rows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">Nenhum lancamento encontrado.</td></tr>';
     } else {
@@ -283,7 +276,6 @@ export function renderLancamentosView(container) {
         const override = getOverride(lId);
         let cidade = "";
         let isOverridden = false;
-
         if (override) {
           cidade = override.cidade || "";
           isOverridden = true;
@@ -291,20 +283,17 @@ export function renderLancamentosView(container) {
           const match = matchFornecedor(row.historico, fornecedoresData);
           if (match) cidade = match.cidade || "";
         }
-
         const cidadeClass = isOverridden ? "cidade-override" : (cidade ? "cidade" : "cidade-empty");
         const cidadeBadge = isOverridden
           ? '<span class="override-badge" title="Editado">✎</span>'
           : cidade
             ? '<span class="auto-badge" title=""></span>'
             : "";
-
         const monthName = (() => {
           if (!row.data) return "—";
           const dt = row.data instanceof Date ? row.data : new Date(row.data);
           return MONTH_NAMES[dt.getMonth()]?.toLowerCase() || "—";
         })();
-
         return `<tr data-lancamento-id="${lId}">
           <td>${formatDate(row.data)}</td>
           <td>${monthName}</td>
@@ -312,19 +301,19 @@ export function renderLancamentosView(container) {
           <td class="td-center">${row.filial}</td>
           <td style="text-align:right;font-weight:600">${fmt(row.debito)}</td>
           ${(() => {
-  const catResolved = resolveCategoria(row);
-  if (catResolved.opcoes.length > 1) {
-    return `<td><select class="cat-select" data-lancamento-id="${lId}">
-      ${catResolved.opcoes.map(c =>
-        `<option value="${c}" ${c === catResolved.categoria ? "selected" : ""}>${c}</option>`
-      ).join("")}
-    </select></td>`;
-  }
-  const catBadge = catResolved.isOverride
-    ? ' <span class="override-badge" title="Editado">✎</span>'
-    : "";
-  return `<td><span class="tag ${tagClass(catResolved.categoria)}">${catResolved.categoria || "—"}</span>${catBadge}</td>`;
-})()}
+            const catResolved = resolveCategoria(row);
+            if (catResolved.opcoes.length > 1) {
+              return `<td><select class="cat-select" data-lancamento-id="${lId}">
+                ${catResolved.opcoes.map(c =>
+                  `<option value="${c}" ${c === catResolved.categoria ? "selected" : ""}>${c}</option>`
+                ).join("")}
+              </select></td>`;
+            }
+            const catBadge = catResolved.isOverride
+              ? ' <span class="override-badge" title="Editado">✎</span>'
+              : "";
+            return `<td><span class="tag ${tagClass(catResolved.categoria)}">${catResolved.categoria || "—"}</span>${catBadge}</td>`;
+          })()}
           <td class="td-center">
             <div class="cidade-cell ${cidadeClass}" data-lancamento-id="${lId}">
               <span class="cidade-text">${cidade || "—"}</span>
@@ -333,23 +322,20 @@ export function renderLancamentosView(container) {
           </td>
         </tr>`;
       }).join("");
-
       tbody.querySelectorAll(".cidade-cell").forEach(cell => {
         cell.addEventListener("click", () => editCidade(cell));
       });
     }
     tbody.querySelectorAll(".cat-select").forEach(sel => {
-  sel.addEventListener("change", async (e) => {
-    const lId = e.target.dataset.lancamentoId;
-    const existing = getOverride(lId) || {};
-    saveOverride(lId, { ...existing, categoria: e.target.value });
-    renderTable();
-  });
-});
-
+      sel.addEventListener("change", async (e) => {
+        const lId = e.target.dataset.lancamentoId;
+        const existing = getOverride(lId) || {};
+        saveOverride(lId, { ...existing, categoria: e.target.value });
+        renderTable();
+      });
+    });
     const totalEl = document.getElementById("lancTotal");
     if (totalEl) totalEl.textContent = `${rows.length} lancamentos · ${fmt(total)}`;
-
     document.querySelectorAll("#lancTable .sort-header").forEach(th => {
       const col = th.dataset.sort;
       const ind = th.querySelector(".sort-indicator");
@@ -368,9 +354,7 @@ export function renderLancamentosView(container) {
     const lId = cell.dataset.lancamentoId;
     const textEl = cell.querySelector(".cidade-text");
     const currentText = textEl.textContent === "—" ? "" : textEl.textContent;
-
     const cidadesConhecidas = getCidadesConhecidas(fornecedoresData);
-
     cell.innerHTML = `
       <div class="cidade-edit-wrap">
         <input type="text" class="cidade-input" value="${currentText}"
@@ -382,11 +366,9 @@ export function renderLancamentosView(container) {
         <button class="cidade-cancel" title="Cancelar">✕</button>
       </div>
     `;
-
     const input = cell.querySelector(".cidade-input");
     input.focus();
     input.select();
-
     cell.querySelector(".cidade-save").onclick = async () => {
       const newCidade = input.value.trim();
       if (newCidade) {
@@ -396,15 +378,14 @@ export function renderLancamentosView(container) {
       }
       renderTable();
     };
-
     cell.querySelector(".cidade-cancel").onclick = () => renderTable();
-
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") cell.querySelector(".cidade-save").click();
       if (e.key === "Escape") cell.querySelector(".cidade-cancel").click();
     });
   }
 
+  // ─── RENDER DO HTML ──────────────────────────────
   container.innerHTML = `
     <div class="lancamentos-page">
       <div class="page-header">
@@ -416,15 +397,11 @@ export function renderLancamentosView(container) {
           <option value="all" ${filterMonth === "all" ? "selected" : ""}>Todos os meses</option>
           ${MONTH_NAMES.map(m => `<option value="${m}" ${m === filterMonth ? "selected" : ""}>${m.charAt(0)+m.slice(1).toLowerCase()}</option>`).join("")}
         </select>
-        <select id="filterCategory" class="lanc-filter-select">
-          <option value="all">Todas as categorias</option>
-          ${allCategories.map(c => `<option value="${c}">${c}</option>`).join("")}
-        </select>
         <select id="filterCidade" class="lanc-filter-select">
           <option value="all">Todas as cidades</option>
           ${allCidades.map(c => `<option value="${c}">${c}</option>`).join("")}
         </select>
-        <input type="text" id="lancSearch" style="margin-bottom:10px"; class="lanc-filter-input" placeholder="Buscar por historico, filial...">
+        <input type="text" id="lancSearch" class="lanc-filter-input" placeholder="Buscar por historico, filial...">
       </div>
       <div class="table-wrap">
         <table id="lancTable" class="modal-table">
@@ -434,8 +411,34 @@ export function renderLancamentosView(container) {
               <th>Mes</th>
               <th>Historico</th>
               <th>Filial</th>
-              <th class="sort-header" data-sort="" style="text-align:right"> (R$) <span class="sort-indicator">↕</span></th>
-              <th>Categoria</th>
+              <th class="sort-header" data-sort="debito" style="text-align:right">Valor (R$) <span class="sort-indicator">↕</span></th>
+              <th class="th-filter-col">
+                <div class="th-filter-wrap">
+                  <span>Categoria</span>
+                  <button class="th-filter-btn" id="catFilterBtn" title="Filtrar por categoria">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </button>
+                  <span class="th-filter-badge" id="catFilterBadge" style="display:none"></span>
+                  <div class="th-filter-dropdown" id="catFilterDropdown">
+                    <div class="th-filter-search-wrap">
+                      <input type="text" class="th-filter-search-input" id="catFilterSearch" placeholder="Buscar categoria...">
+                    </div>
+                    <div class="th-filter-list" id="catFilterList">
+                      <div class="th-filter-item active" data-cat="all">
+                        <span class="th-filter-check">✓</span>
+                        <span>Todas as categorias</span>
+                      </div>
+                      ${allCategories.map(c => `
+                        <div class="th-filter-item" data-cat="${c}">
+                          <span class="th-filter-check">✓</span>
+                          <span class="th-filter-dot" style="background:${tagColor(c)}"></span>
+                          <span>${c}</span>
+                        </div>
+                      `).join("")}
+                    </div>
+                  </div>
+                </div>
+              </th>
               <th>Cidade</th>
             </tr>
           </thead>
@@ -445,11 +448,14 @@ export function renderLancamentosView(container) {
     </div>
   `;
 
+  // ─── EVENT LISTENERS (agora DEPOIS do innerHTML) ───────
+
+  // Filtros normais
   document.getElementById("filterMonth")?.addEventListener("change", e => { filterMonth = e.target.value; renderTable(); });
-  document.getElementById("filterCategory")?.addEventListener("change", e => { filterCategory = e.target.value; renderTable(); });
   document.getElementById("filterCidade")?.addEventListener("change", e => { filterCidade = e.target.value; renderTable(); });
   document.getElementById("lancSearch")?.addEventListener("input", e => { searchTerm = e.target.value; renderTable(); });
 
+  // Sort headers
   document.querySelectorAll("#lancTable .sort-header").forEach(th => {
     th.onclick = () => {
       const col = th.dataset.sort;
@@ -457,6 +463,69 @@ export function renderLancamentosView(container) {
       else { sortCol = col; sortDir = "desc"; }
       renderTable();
     };
+  });
+
+  // ─── DROPDOWN FILTRO DE CATEGORIA ─────────────────
+  const catFilterBtn = document.getElementById("catFilterBtn");
+  const catFilterDropdown = document.getElementById("catFilterDropdown");
+  const catFilterBadge = document.getElementById("catFilterBadge");
+  const catFilterSearch = document.getElementById("catFilterSearch");
+  const catFilterList = document.getElementById("catFilterList");
+
+  function toggleCatFilter(open) {
+    const isOpen = open !== undefined ? open : !catFilterDropdown.classList.contains("open");
+    catFilterDropdown.classList.toggle("open", isOpen);
+    catFilterBtn.classList.toggle("open", isOpen);
+    if (isOpen) {
+      catFilterSearch.value = "";
+      catFilterList.querySelectorAll(".th-filter-item").forEach(item => {
+        item.classList.remove("hidden");
+      });
+      catFilterSearch.focus();
+    }
+  }
+
+  function selectCatFilter(cat, label) {
+    filterCategory = cat;
+    catFilterList.querySelectorAll(".th-filter-item").forEach(item => {
+      item.classList.toggle("active", item.dataset.cat === cat);
+    });
+    if (cat !== "all") {
+      catFilterBadge.textContent = label.length > 12 ? label.slice(0, 10) + "…" : label;
+      catFilterBadge.style.display = "inline-block";
+    } else {
+      catFilterBadge.style.display = "none";
+    }
+    toggleCatFilter(false);
+    renderTable();
+  }
+
+  catFilterBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleCatFilter();
+  });
+
+  catFilterSearch.addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    catFilterList.querySelectorAll(".th-filter-item").forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.classList.toggle("hidden", !text.includes(q));
+    });
+  });
+  catFilterSearch.addEventListener("click", (e) => e.stopPropagation());
+
+  catFilterList.addEventListener("click", (e) => {
+    const item = e.target.closest(".th-filter-item");
+    if (!item) return;
+    const cat = item.dataset.cat;
+    const label = cat === "all" ? "Todas" : item.querySelector("span:last-child").textContent;
+    selectCatFilter(cat, label);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (catFilterDropdown && !catFilterDropdown.contains(e.target) && !catFilterBtn.contains(e.target)) {
+      toggleCatFilter(false);
+    }
   });
 
   renderTable();
