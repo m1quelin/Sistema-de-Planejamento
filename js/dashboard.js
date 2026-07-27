@@ -479,52 +479,21 @@ export function renderCategoriasView(container) {
   });
 
   let activeCategory = null;
-  let showAll = false;
+  let showAll = true;
 
-  function renderBreakdown() {
-    const visibleCats = showAll ? sortedCats : sortedCats.slice(0, TOP_N);
-    const isGrid = showAll && visibleCats.length > 8;
-
-    if (isGrid) {
-      // Grade de colunas quando expandido
+function renderBreakdown() {
+    return sortedCats.map(([cat, d]) => {
+      const pct = totalGeral > 0 ? (d.total / totalGeral * 100) : 0;
       return `
-        <div class="cat-grid-expanded">
-          ${visibleCats.map(([cat, d]) => {
-            const pct = totalGeral > 0 ? (d.total / totalGeral * 100) : 0;
-            const isActive = activeCategory === cat;
-            return `
-              <div class="cat-grid-item ${isActive ? "active" : ""}" data-cat="${cat}">
-                <div class="cat-grid-item-top">
-                  <span class="cat-grid-dot" style="background:${tagColor(cat)}"></span>
-                  <span class="cat-grid-name">${cat}</span>
-                </div>
-                <div class="cat-grid-value">${fmt(d.total)}</div>
-                <div class="cat-grid-pct">${pct.toFixed(1)}% · ${d.count} lanç.</div>
-              </div>`;
-          }).join("")}
-        </div>
-      `;
-    }
-
-    // Lista de barras horizontais (padrão)
-    return `
-      <div class="cat-breakdown-list">
-        ${visibleCats.map(([cat, d]) => {
-          const pct = totalGeral > 0 ? (d.total / totalGeral * 100) : 0;
-          const isActive = activeCategory === cat;
-          return `
-            <div class="cat-breakdown-row ${isActive ? "active" : ""}" data-cat="${cat}">
-              <span class="cat-breakdown-dot" style="background:${tagColor(cat)}"></span>
-              <span class="cat-breakdown-name">${cat}</span>
-              <div class="cat-breakdown-track">
-                <div class="cat-breakdown-fill" style="width:${pct}%; background:${tagColor(cat)}"></div>
-              </div>
-              <span class="cat-breakdown-pct">${pct.toFixed(1)}%</span>
-              <span class="cat-breakdown-value">${fmt(d.total)}</span>
-            </div>`;
-        }).join("")}
-      </div>
-    `;
+          <div data-cat="${cat}" style="background:rgba(255,255,255,0.04);border:1px solid #444;border-radius:10px;padding:14px;cursor:pointer;min-height:80px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:${tagColor(cat)};flex-shrink:0;"></span>
+              <span style="font-size:12px;font-weight:600;color:#fff;">${cat}</span>
+            </div>
+            <div style="font-size:18px;font-weight:800;color:#fff;">${fmt(d.total)}</div>
+            <div style="font-size:11px;color:#888;">${pct.toFixed(1)}% · ${d.count} lanç.</div>
+          </div>`;
+    }).join("");
   }
 
     function renderDetail() {
@@ -590,34 +559,20 @@ export function renderCategoriasView(container) {
     `;
   }
 
-  function renderAll() {
+function renderAll() {
     return `
       <div class="categorias-page">
         <div class="cat-page-header">
           <h2>Categorias</h2>
           <span class="cat-subtitle">${sortedCats.length} categorias · ${fmt(totalGeral)}</span>
         </div>
-
-        <div class="cat-overview">
-          <div class="cat-overview-total">
-            <span class="cat-overview-label">Total investido</span>
-            <span class="cat-overview-amount">${fmt(totalGeral)}</span>
-          </div>
-
-          <div id="catBreakdownArea">
-            ${renderBreakdown()}
-          </div>
-
-          <div class="cat-overview-actions">
-            ${sortedCats.length > TOP_N
-              ? `<button class="cat-toggle-btn" id="catToggleBtn">
-                  ${showAll ? "Ver menos" : `Ver todas (${sortedCats.length})`}
-                </button>`
-              : ""
-            }
-          </div>
+        <div class="cat-overview-total">
+          <span class="cat-overview-label">Total investido</span>
+          <span class="cat-overview-amount">${fmt(totalGeral)}</span>
         </div>
-
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;width:100%;margin-top:20px;">
+  ${renderBreakdown()}
+</div>
         <div id="catDetailArea">
           ${renderDetail()}
         </div>
@@ -652,25 +607,6 @@ export function renderCategoriasView(container) {
     });
   }
 
-  function bindToggle() {
-    const btn = container.querySelector("#catToggleBtn");
-    if (!btn) return;
-    btn.addEventListener("click", () => {
-      showAll = !showAll;
-      refreshBreakdown();
-      // Recria o botão com texto novo
-      const actions = container.querySelector(".cat-overview-actions");
-      if (actions) {
-        actions.innerHTML = sortedCats.length > TOP_N
-          ? `<button class="cat-toggle-btn" id="catToggleBtn">
-              ${showAll ? "Ver menos" : `Ver todas (${sortedCats.length})`}
-            </button>`
-          : "";
-        bindToggle();
-      }
-    });
-  }
-
   function bindBack() {
     const btn = container.querySelector("#catBackBtn");
     if (!btn) return;
@@ -683,7 +619,6 @@ export function renderCategoriasView(container) {
 
   container.innerHTML = renderAll();
   bindBreakdown();
-  bindToggle();
   bindBack();
 }
 

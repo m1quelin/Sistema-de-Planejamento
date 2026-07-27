@@ -65,6 +65,12 @@ main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 16px; margin-bottom: 28px;
 }
+
+main:has(.categorias-page) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1153,10 +1159,6 @@ body.light-mode .logo-area img {
   border: 1px solid var(--border, #333);
   border-radius: 12px;
   padding: 24px;
-  height: 380px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .cat-overview-total {
@@ -1187,10 +1189,10 @@ body.light-mode .logo-area img {
 }
 
 /* ─── LISTA DE BARRAS ──────────────────────────────── */
-.cat-breakdown-list,
-.cat-grid-expanded {
-  flex: 1;
-  overflow: hidden;
+.cat-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .cat-breakdown-row {
@@ -1257,8 +1259,9 @@ body.light-mode .logo-area img {
 /* ─── GRADE EXPANDIDA ──────────────────────────────── */
 .cat-grid-expanded {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
 }
 
 .cat-grid-item {
