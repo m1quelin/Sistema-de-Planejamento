@@ -1,10 +1,11 @@
-import { renderDashboardView, renderLancamentosView, renderFornecedoresView, renderCategoriasView } from "./dashboard.js";
+import { renderDashboardView, renderLancamentosView, renderFornecedoresView, renderCategoriasView, renderReportsView } from "./dashboard.js";
 
 const views = {
   dashboard: { label: "Dashboard", render: renderDashboardView },
   lancamentos: { label: "Lançamentos", render: renderLancamentosView },
   fornecedores: { label: "Fornecedores", render: renderFornecedoresView },
   categorias: { label: "Categorias", render: renderCategoriasView },
+  relatorios: { label: "Relatórios", render: renderReportsView },
 };
 
 let currentView = "dashboard";

@@ -6,7 +6,7 @@ import { navigateTo } from "./views.js";
 
 
 // ─── CONSTANTES ──────────────────────────────────────────────
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   "JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
   "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"
 ];
@@ -21,7 +21,7 @@ let globalData = null;
 let unsubPlanilha = null;
 let pendingMonthFilter = null; // mês selecionado ao clicar no card do dashboard, aplicado na próxima abertura da aba Lançamentos
 
-let fornecedoresData = [];
+export let fornecedoresData = [];
 let overridesData = {};
 
 // ─── INIT ────────────────────────────────────────────────────
@@ -1240,7 +1240,7 @@ function toNum(v) {
   return isNaN(n) ? 0 : n;
 }
 
-function fmt(n) {
+export function fmt(n) {
   return n.toLocaleString("pt-BR", {
     style: "currency", currency: "BRL", minimumFractionDigits: 2
   });
@@ -1260,4 +1260,324 @@ function tagClass(cat) {
   if (c.includes("patroc")) return "tag-pat";
   if (c.includes("doa")) return "tag-doa";
   return "tag-out";
+}
+
+// ═══ RELATÓRIOS ═══════════════════════════════════════
+let chartInstances = {};
+
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+  chartInstances = {};
+}
+
+const chartColors = [
+  "#4f8ef7", "#38d9a9", "#f5c842", "#f06a4e",
+  "#a78bfa", "#ec4899", "#14b8a6", "#f97316"
+];
+
+export function renderReportsView(container) {
+  if (!globalData) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h2>Sem dados para exibir</h2>
+        <p>Aguarde o administrador subir a planilha.</p>
+      </div>`;
+    return;
+  }
+
+  destroyCharts();
+
+  const lancamentos = globalData.lancamentos;
+
+  function getCatLanc(l) {
+    const match = matchFornecedor(l.historico, fornecedoresData);
+    if (match && match.tipo_midia) {
+      const cats = match.tipo_midia.split(",").map(t => t.trim()).filter(Boolean);
+      if (cats.length > 0) {
+        const lId = lancamentoId(l, "all");
+        const override = getOverride(lId);
+        return (override && override.categoria) ? override.categoria : cats[0];
+      }
+    }
+    return l.categoria || "Sem categoria";
+  }
+
+  function getCidadeLanc(l) {
+    const lId = lancamentoId(l, "all");
+    const override = getOverride(lId);
+    if (override && override.cidade) return override.cidade;
+    const match = matchFornecedor(l.historico, fornecedoresData);
+    return match?.cidade || "Sem cidade";
+  }
+
+  const cidadeData = {};
+  const categoriaData = {};
+  const mesData = {};
+  let totalGeral = 0;
+
+  lancamentos.forEach(l => {
+    const valor = l.debito || 0;
+    const cidade = getCidadeLanc(l);
+    const categoria = getCatLanc(l);
+    const mes = (() => {
+      if (!l.data) return "—";
+      const dt = l.data instanceof Date ? l.data : new Date(l.data);
+      return MONTH_NAMES[dt.getMonth()] || "—";
+    })();
+
+    totalGeral += valor;
+
+    if (!cidadeData[cidade]) cidadeData[cidade] = { total: 0, count: 0, categorias: {} };
+    cidadeData[cidade].total += valor;
+    cidadeData[cidade].count++;
+    if (!cidadeData[cidade].categorias[categoria]) cidadeData[cidade].categorias[categoria] = 0;
+    cidadeData[cidade].categorias[categoria] += valor;
+
+    if (!categoriaData[categoria]) categoriaData[categoria] = { total: 0, count: 0, cidades: {} };
+    categoriaData[categoria].total += valor;
+    categoriaData[categoria].count++;
+    if (!categoriaData[categoria].cidades[cidade]) categoriaData[categoria].cidades[cidade] = 0;
+    categoriaData[categoria].cidades[cidade] += valor;
+
+    if (!mesData[mes]) mesData[mes] = {};
+    if (!mesData[mes][cidade]) mesData[mes][cidade] = 0;
+    mesData[mes][cidade] += valor;
+  });
+
+  const sortedCidades = Object.entries(cidadeData).sort((a, b) => b[1].total - a[1].total);
+  const sortedCategorias = Object.entries(categoriaData).sort((a, b) => b[1].total - a[1].total);
+  const sortedMeses = Object.entries(mesData).sort((a, b) => MONTH_NAMES.indexOf(a[0]) - MONTH_NAMES.indexOf(b[0]));
+
+  const topCidades = sortedCidades.slice(0, 8);
+  const topCidadesMes = sortedCidades.slice(0, 5).map(([c]) => c);
+
+  container.innerHTML = `
+    <div class="reports-page page">
+      <div class="page-header">
+        <h2>Relatórios</h2>
+        <span class="page-subtitle">${sortedCidades.length} escritórios · ${sortedCategorias.length} categorias · ${fmt(totalGeral)}</span>
+      </div>
+
+      <div class="reports-kpis">
+        <div class="card report-kpi">
+          <span class="label-base">Total investido</span>
+          <span class="report-kpi-value">${fmt(totalGeral)}</span>
+        </div>
+        <div class="card report-kpi">
+          <span class="label-base">Escritórios</span>
+          <span class="report-kpi-value">${sortedCidades.length}</span>
+        </div>
+        <div class="card report-kpi">
+          <span class="label-base">Categorias</span>
+          <span class="report-kpi-value">${sortedCategorias.length}</span>
+        </div>
+        <div class="card report-kpi">
+          <span class="label-base">Lançamentos</span>
+          <span class="report-kpi-value">${lancamentos.length}</span>
+        </div>
+      </div>
+
+      <div class="card report-section">
+        <div class="report-section-header">
+          <h3>Investimento por escritório</h3>
+          <span class="page-subtitle">Cidade do fornecedor</span>
+        </div>
+        <div class="report-city-list">
+          ${sortedCidades.map(([cidade, d], i) => {
+            const pct = totalGeral > 0 ? (d.total / totalGeral * 100) : 0;
+            return `
+              <div class="report-city-row" data-cidade="${cidade}">
+                <div class="report-city-info">
+                  <span class="report-city-rank">${i + 1}</span>
+                  <span class="report-city-name">${cidade}</span>
+                  <span class="report-city-count">${d.count} lanç.</span>
+                </div>
+                <div class="report-city-bar-wrap">
+                  <div class="report-city-bar" style="width:${pct}%;background:${chartColors[i % chartColors.length]}"></div>
+                </div>
+                <div class="report-city-values">
+                  <span class="report-city-pct">${pct.toFixed(1)}%</span>
+                  <span class="report-city-total">${fmt(d.total)}</span>
+                </div>
+              </div>`;
+          }).join("")}
+        </div>
+      </div>
+
+      <div class="reports-charts-grid">
+        <div class="card report-section">
+          <div class="report-section-header">
+            <h3>Ranking de categorias</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartCategorias"></canvas>
+          </div>
+        </div>
+
+        <div class="card report-section">
+          <div class="report-section-header">
+            <h3>Top cidades</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartCidades"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card report-section">
+        <div class="report-section-header">
+          <h3>Comparativo mês a mês por escritório</h3>
+          <span class="page-subtitle">Top 5 cidades</span>
+        </div>
+        <div class="chart-container chart-tall">
+          <canvas id="chartMes"></canvas>
+        </div>
+      </div>
+
+      <div class="card report-section">
+        <div class="report-section-header">
+          <h3>Cidade × Categoria</h3>
+        </div>
+        <div class="table-wrap">
+          <table class="table-base" id="reportCrossTable">
+            <thead>
+              <tr>
+                <th>Escritório</th>
+                <th style="text-align:right">Total</th>
+                <th style="text-align:right">Lançamentos</th>
+                <th>Principal categoria</th>
+                <th style="text-align:right">Cat. principal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedCidades.map(([cidade, d]) => {
+                const topCat = Object.entries(d.categorias).sort((a, b) => b[1] - a[1])[0];
+                const catPct = topCat ? (topCat[1] / d.total * 100) : 0;
+                return `
+                  <tr>
+                    <td><strong>${cidade}</strong></td>
+                    <td style="text-align:right">${fmt(d.total)}</td>
+                    <td style="text-align:right">${d.count}</td>
+                    <td>${topCat ? `<span class="tag" style="background:${tagColor(topCat[0])}22;color:${tagColor(topCat[0])};border:1px solid ${tagColor(topCat[0])}44">${tagIcon(topCat[0])} ${topCat[0]}</span>` : "—"}</td>
+                    <td style="text-align:right">${catPct.toFixed(1)}%</td>
+                  </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ─── GRÁFICOS ──────────────────────────────────
+  const isDark = !document.body.classList.contains("light-mode");
+  const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+  const textColor = isDark ? "#7b82a0" : "#626986";
+
+  if (typeof Chart !== "undefined") {
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = textColor;
+  }
+
+  const ctxCat = document.getElementById("chartCategorias");
+  if (ctxCat && typeof Chart !== "undefined") {
+    chartInstances.categorias = new Chart(ctxCat, {
+      type: "bar",
+      data: {
+        labels: sortedCategorias.slice(0, 8).map(([c]) => c),
+        datasets: [{
+          label: "Investido",
+          data: sortedCategorias.slice(0, 8).map(([_, d]) => d.total),
+          backgroundColor: sortedCategorias.slice(0, 8).map(([c], i) => chartColors[i % chartColors.length] + "cc"),
+          borderColor: sortedCategorias.slice(0, 8).map(([c], i) => chartColors[i % chartColors.length]),
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => fmt(ctx.raw) } }
+        },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { callback: (v) => "R$ " + (v / 1000).toFixed(0) + "k" } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  const ctxCid = document.getElementById("chartCidades");
+  if (ctxCid && typeof Chart !== "undefined") {
+    chartInstances.cidades = new Chart(ctxCid, {
+      type: "bar",
+      data: {
+        labels: topCidades.map(([c]) => c),
+        datasets: [{
+          label: "Investido",
+          data: topCidades.map(([_, d]) => d.total),
+          backgroundColor: topCidades.map(([c], i) => chartColors[i % chartColors.length] + "cc"),
+          borderColor: topCidades.map(([c], i) => chartColors[i % chartColors.length]),
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => fmt(ctx.raw) } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { color: gridColor }, ticks: { callback: (v) => "R$ " + (v / 1000).toFixed(0) + "k" } }
+        }
+      }
+    });
+  }
+
+  const ctxMes = document.getElementById("chartMes");
+  if (ctxMes && typeof Chart !== "undefined") {
+    chartInstances.mes = new Chart(ctxMes, {
+      type: "line",
+      data: {
+        labels: sortedMeses.map(([m]) => m.charAt(0) + m.slice(1).toLowerCase()),
+        datasets: topCidadesMes.map((cidade, i) => ({
+          label: cidade,
+          data: sortedMeses.map(([_, cidades]) => cidades[cidade] || 0),
+          borderColor: chartColors[i % chartColors.length],
+          backgroundColor: chartColors[i % chartColors.length] + "15",
+          borderWidth: 2,
+          fill: false,
+          tension: 0.35,
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }))
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { boxWidth: 10, boxHeight: 10, padding: 12, font: { size: 11 } }
+          },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.raw)}` } }
+        },
+        scales: {
+          x: { grid: { color: gridColor } },
+          y: {
+            grid: { color: gridColor },
+            ticks: { callback: (v) => "R$ " + (v / 1000).toFixed(0) + "k" }
+          }
+        }
+      }
+    });
+  }
 }
